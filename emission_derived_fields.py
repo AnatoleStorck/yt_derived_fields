@@ -1,0 +1,159 @@
+# Generating derived fields for the emission lines module
+# NOTE: for the MEGATRON simulations ran with RAMSES-RTZ
+
+# This module will follow closely the approach of
+# Harley Katz for computing spectra and emission lines
+
+# Everything normally needs to be in cgs units
+
+# Author: Anatole Storck
+
+from yt import units as u
+import numpy as np
+
+met_data = {
+    "O":    {"name" : "oxygen",     "mass": 15.9994 * u.amu,     "Nion": 8 },
+    "Ne":   {"name" : "neon",       "mass": 20.1797 * u.amu,     "Nion": 10},
+    "C":    {"name" : "carbon",     "mass": 12.0107 * u.amu,     "Nion": 6 },
+    "S":    {"name" : "sulfur",     "mass": 32.065  * u.amu,     "Nion": 11},
+    "Mg":   {"name" : "magnesium",  "mass": 24.305  * u.amu,     "Nion": 10},
+    "Si":   {"name" : "silicon",    "mass": 28.0855 * u.amu,     "Nion": 11},
+    "N":    {"name" : "nitrogen",   "mass": 14.0067 * u.amu,     "Nion": 7 },
+    "Fe":   {"name" : "iron",       "mass": 55.854  * u.amu,     "Nion": 11},
+}
+prim_data = {
+    "H":    {"name" : "hydrogen",   "mass": 1.00784 * u.amu,   "massFrac": 0.76},
+    "He":   {"name" : "helium",     "mass": 4.002602 * u.amu,  "massFrac": 0.24},
+}
+
+# The roman numerals are used to identify the ionization state of the element
+roman_numerals = {
+    "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6,
+    "VII": 7, "VIII": 8, "IX": 9, "X": 10, "XI": 11, "XII": 12
+}
+
+_spectral_data = "/mnt/users/storcka/analysis/spectra/spectral_cache"
+
+def get_emission_lines(ds, coll_lines=None, rec_lines=None):
+    """
+    Add emission line luminosity fields to the dataset.
+
+    Args:
+        ds (yt.Dataset): The dataset object.
+        coll_lines (list, optional): A list of collision lines to consider. Defaults to None.
+                                     Example: ["O3-5007", "S2-6731"]
+        rec_lines (list, optional): A list of recombination lines to consider. Defaults to None.
+                                     Example: ["Lya", "Hb", "He-1640"]
+    """
+    
+    u_ds = ds.units
+    
+    # These dictionaries are used to store the emission line metadata, along with interpolation grids
+    # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
+    if coll_lines is not None:
+        coll_line_dict = np.load(f"{_spectral_data}/coll_line_dict.npy", allow_pickle=True).item()
+    if rec_lines is not None:
+        rec_line_dict = np.load(f"{_spectral_data}/rec_line_dict.npy", allow_pickle=True).item()
+    
+    # line in the form of, for example, "O3-5007"
+    def coll_line(ds, line):
+    
+        def _get_coll_line_lum(field, data):
+            
+            nCells = len(data["gas", "density"].to("g/cm**3").flatten())
+            rho = data["gas", "density"].to("g/cm**3").value.flatten()
+            
+            #Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
+            Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
+            
+            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
+            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
+            
+            # Set up the arrays to interpolate
+            to_interp = np.zeros((nCells, 2))
+            to_interp[:,0] = Tgas
+            to_interp[:,1] = np.log10(ne)
+            
+            # ----------------------------------------------------------
+            
+            el  = coll_line_dict[line]["ion"].split("_")[0]           # C,    O,      Fe
+            ion_roman = coll_line_dict[line]["ion"].split("_")[1]     # II,   III,    VII       
+            
+            nel = rho * data["ramses", f"hydro_{met_data[el]['name']}_fraction"].flatten() / met_data[el]["mass"].to("g").value
+            xion = data["ramses", f"hydro_{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
+            
+            # get emisitivity of cells based on T and ne
+            loc_emis = coll_line_dict[line]["emis_grid"](to_interp)
+            
+            # Multiply by the electron density and ion density
+            # n{el} = nO, ion = O_IV
+            loc_emis *= ne * nel * xion
+            loc_lum = loc_emis * cell_vol # erg/s
+
+            return loc_lum * u.erg / u.s
+        
+        ds.add_field(name=("gas", f"{line}_luminosity"),
+                    function=_get_coll_line_lum,
+                    units="erg/s",
+                    sampling_type="cell",
+                    display_name=f"{line} Luminosity",)
+        
+    # line in the form of "Lya", "Hb", "He-1640"
+    def rec_line(ds, line):
+        
+        def _get_rec_line_lum(field, data):
+
+            nCells = len(data["gas", "density"].to("g/cm**3").flatten())
+            rho = data["gas", "density"].to("g/cm**3").value.flatten()
+            
+            #Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
+            Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
+
+            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
+            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
+            
+            # Set up the arrays to interpolate
+            to_interp = np.zeros((nCells, 2))
+            to_interp[:,0] = Tgas
+            to_interp[:,1] = np.log10(ne)
+            
+            min_temp = 10.0
+
+            to_interp_ch = 10.**np.array(Tgas)
+            to_interp_ch[to_interp_ch < min_temp] = min_temp
+            to_interp_ch[to_interp_ch > 1e9] = 1e9
+            
+            # ----------------------------------------------------------
+            
+            el  = rec_line_dict[line]["ion"].split("_")[0]
+            ion_roman = rec_line_dict[line]["ion"].split("_")[1]
+            # remove the last roman numeral to get lower ionization state
+            # NOTE: only works because rec roman numerals go up to III
+            ion_col_roman = ion_roman[:-1]
+            
+            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value.flatten()
+            xion = data["ramses", f"hydro_{el}_{roman_numerals[ion_roman]:02d}"].flatten()
+            xion_col = data["ramses", f"hydro_{el}_{roman_numerals[ion_col_roman]:02d}"].flatten()
+            
+            loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
+            loc_rec_emis *= ne * nel * xion # NOTE * df_gas[f"{el}_dep"]
+
+            loc_col_emis = rec_line_dict[line]["emis_grid_col"](to_interp_ch)        
+            loc_col_emis *= ne * nel * xion_col # NOTE * df_gas[f"{el}_dep"]
+            
+            loc_rec_lum = loc_rec_emis * cell_vol # erg/s
+            loc_col_lum = loc_col_emis * cell_vol # erg/s
+            
+            return (loc_rec_lum + loc_col_lum) * u.erg / u.s
+        
+        ds.add_field(name=("gas", f"{line}_luminosity"),
+                    function=_get_rec_line_lum,
+                    units="erg/s",
+                    sampling_type="cell",
+                    display_name=f"{line} Luminosity",)
+        
+    for line in coll_lines:
+        coll_line(ds, line)
+    for line in rec_lines:
+        rec_line(ds, line)
+        
