@@ -1,7 +1,7 @@
 # Generating derived fields for the chemistry module
 # NOTE: for the MEGATRON simulations ran with RAMSES-RTZ
 
-# TODO: Fix f_iron ("ramse", "Metallicity") in YT TOML file for MEGATRON
+# TODO: Fix iron_fraction ("ramse", "Metallicity") in YT TOML file for MEGATRON
 
 # Author: Anatole Storck
 
@@ -34,18 +34,11 @@ def _initialize_metal_density(ds, element: str):
     metal_name = metal_data[element]["name"]
     def _metal_density(field, data):
         
-        # # IF NO TOML
-        # if element == "Fe":
-        #     metal_density = data["gas", "density"] * data["ramses", "Metallicity"]
-        # else:
-        #     metal_density = (data["gas", "density"] *
-        #                      data["ramses", f"hydro_{metal_name}_fraction"])
-        
-        if element == "Fe":
+        if element == "Fe":                        # NOTE: iron_fraction is "Metallicity"
             metal_density = data["gas", "density"] * data["ramses", "Metallicity"]
         else:
             metal_density = (data["gas", "density"] *
-                            data["gas", f"{metal_name}_fraction"])
+                             data["gas", f"{metal_name}_fraction"])
 
         return metal_density
     
@@ -99,8 +92,8 @@ def _initialize_H2_number_density(ds):
     
     def _H2_number_density(field, data):
         
-        xHI = data["gas", "hydrogen_01"] # ["ramses", "hydro_H_01"]
-        xHII = data["gas", "hydrogen_02"] # ["ramses", "hydro_H_02"]
+        xHI = data["gas", "hydrogen_01"]    # ["ramses", "hydro_H_01"]
+        xHII = data["gas", "hydrogen_02"]   # ["ramses", "hydro_H_02"]
 
         xH2 = 1 - xHI - xHII
         return data["gas", "hydrogen_number_density"] * xH2 / 2
@@ -134,14 +127,14 @@ def _initialize_CO(ds):
 def _initialize_electron_number_density(ds):
     
     def _electron_number_density(field, data):
-
+                                                # NOTE: Old fields without yt.toml
         # Ionized hydrogen electrons
-        xHII = data["gas", "hydrogen_02"] # ["rames", "hydro_H_02"]
+        xHII = data["gas", "hydrogen_02"]       # ["ramses", "hydro_H_02"]
         nHII = data["gas", "hydrogen_number_density"] * xHII
         
         # Ionized helium electrons
-        xHeII = data["gas", "helium_02"] # ["ramses", "hydro_He_02"]
-        xHeIII = data["gas", "helium_03"] # ["ramses", "hydro_He_03"]
+        xHeII = data["gas", "helium_02"]        # ["ramses", "hydro_He_02"]
+        xHeIII = data["gas", "helium_03"]       # ["ramses", "hydro_He_03"]
 
         nHeII = data["gas", "helium_number_density"] * xHeII
         nHeIII = data["gas", "helium_number_density"] * xHeIII
@@ -169,6 +162,9 @@ def _initialize_mean_molecular_weight(ds):
     
     def _mean_molecular_weight(field, data):
         
+        # Compute the total density in the cell
+        # NOTE: electron don't matter
+        
         rhoH = data["gas", "hydrogen_density"]
         rhoHe = data["gas", "helium_density"]
         
@@ -181,9 +177,14 @@ def _initialize_mean_molecular_weight(ds):
         
         sum_density = (rhoH + rhoHe + rhoMet + rhoCO) / u.amu
         
+        # Compute the number density of each bound structure in the cell
+        # NOTE: electrons matter
+        
         xHI = data["gas", "hydrogen_01"] # ["ramses", "hydro_H_01"]
         xHII = data["gas", "hydrogen_02"] # ["ramses", "hydro_H_02"]
         
+        # NOTE: Not really the hydrogen number density, but the number of bound objects containing hydrogen
+        #       Real nH is the total number density of hydrogen atoms (nH = nHI + nHII + 2*nH2)
         nH = data["gas", "hydrogen_number_density"] * (xHI + xHII) + data["gas", "H2_number_density"]
         
         nHe = data["gas", "helium_number_density"]
