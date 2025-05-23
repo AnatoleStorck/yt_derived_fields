@@ -1,7 +1,7 @@
 # Generating derived fields for the chemistry module
 # NOTE: for the MEGATRON simulations ran with RAMSES-RTZ
 
-# TODO: Introduce the YT TOML file for MEGATRON, grabbing the fields from "gas" instead of "ramses"
+# TODO: Fix f_iron ("ramse", "Metallicity") in YT TOML file for MEGATRON
 
 # Author: Anatole Storck
 
@@ -53,7 +53,7 @@ def _initialize_metal_density(ds, element: str):
                 function=_metal_density,
                 units="amu/cm**3",
                 sampling_type="cell",
-                display_name=f"{metal_name} density",)
+                display_name=f"{metal_name.capitalize()} density",)
 
 def _initialize_metallicity(ds):
     
@@ -82,7 +82,7 @@ def _initialize_primordial_density(ds, element):
                 function=_primordial_density,
                 units="amu/cm**3",
                 sampling_type="cell",
-                display_name=f"{prim_name} density",)
+                display_name=f"{prim_name.capitalize()} density",)
     
 def _initialize_primordial_number_density(ds, element):
     prim_name = prim_data[element]["name"]
@@ -93,7 +93,7 @@ def _initialize_primordial_number_density(ds, element):
                 function=_primordial_number_density,
                 units="cm**-3",
                 sampling_type="cell",
-                display_name=f"{prim_name} number density",)
+                display_name=f"{prim_name.capitalize()} number density",)
     
 def _initialize_H2_number_density(ds):
     

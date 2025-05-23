@@ -6,6 +6,8 @@
 
 # Everything normally needs to be in cgs units
 
+# TODO: Add corections for unresolved stromgren spheres
+
 # Author: Anatole Storck
 
 from yt import units as u
@@ -45,8 +47,6 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
         rec_lines (list, optional): A list of recombination lines to consider. Defaults to None.
                                      Example: ["Lya", "Hb", "He-1640"]
     """
-    
-    u_ds = ds.units
     
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
