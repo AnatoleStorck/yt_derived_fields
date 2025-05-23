@@ -33,11 +33,20 @@ molec_data = {
 def _initialize_metal_density(ds, element: str):
     metal_name = metal_data[element]["name"]
     def _metal_density(field, data):
+        
+        # # IF NO TOML
+        # if element == "Fe":
+        #     metal_density = data["gas", "density"] * data["ramses", "Metallicity"]
+        # else:
+        #     metal_density = (data["gas", "density"] *
+        #                      data["ramses", f"hydro_{metal_name}_fraction"])
+        
         if element == "Fe":
             metal_density = data["gas", "density"] * data["ramses", "Metallicity"]
         else:
             metal_density = (data["gas", "density"] *
-                             data["ramses", f"hydro_{metal_name}_fraction"])
+                            data["gas", f"{metal_name}_fraction"])
+
         return metal_density
     
     ds.add_field(name=("gas", f"{metal_name}_density"),
@@ -89,8 +98,10 @@ def _initialize_primordial_number_density(ds, element):
 def _initialize_H2_number_density(ds):
     
     def _H2_number_density(field, data):
-        xHI = data["ramses", "hydro_H_01"]
-        xHII = data["ramses", "hydro_H_02"]
+        
+        xHI = data["gas", "hydrogen_01"] # ["ramses", "hydro_H_01"]
+        xHII = data["gas", "hydrogen_02"] # ["ramses", "hydro_H_02"]
+
         xH2 = 1 - xHI - xHII
         return data["gas", "hydrogen_number_density"] * xH2 / 2
     
@@ -103,7 +114,7 @@ def _initialize_H2_number_density(ds):
 def _initialize_CO(ds):
     
     def _CO_density(field, data):
-        return data["gas", "density"] * data["ramses", "hydro_CO_fraction"]
+        return data["gas", "density"] * data["gas", "CO_fraction"] # ["ramses", "hydro_CO_fraction"]
     
     def _CO_number_density(field, data):
         return data["gas", "CO_density"] / molec_data["CO"]["mass"]
@@ -125,13 +136,13 @@ def _initialize_electron_number_density(ds):
     def _electron_number_density(field, data):
 
         # Ionized hydrogen electrons
-        xHII = data["ramses", "hydro_H_02"]
+        xHII = data["gas", "hydrogen_02"] # ["rames", "hydro_H_02"]
         nHII = data["gas", "hydrogen_number_density"] * xHII
         
         # Ionized helium electrons
-        xHeII = data["ramses", "hydro_He_02"]
-        xHeIII = data["ramses", "hydro_He_03"]
-        
+        xHeII = data["gas", "helium_02"] # ["ramses", "hydro_He_02"]
+        xHeIII = data["gas", "helium_03"] # ["ramses", "hydro_He_03"]
+
         nHeII = data["gas", "helium_number_density"] * xHeII
         nHeIII = data["gas", "helium_number_density"] * xHeIII
         
@@ -143,7 +154,7 @@ def _initialize_electron_number_density(ds):
             metal_name = metal_data[element]["name"]
             nEl = data["gas", f"{metal_name}_density"] / metal_data[element]["mass"]
             for ion in range(metal_data[element]["Nion"]):
-                xEl_ion = data["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
+                xEl_ion = data["gas", f"{metal_name}_{ion+1:02d}"]  # ["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
                 nEl_ion += ion * nEl * xEl_ion
                 
         return nHII + nHeII + nHeIII + nEl_ion
@@ -170,8 +181,8 @@ def _initialize_mean_molecular_weight(ds):
         
         sum_density = (rhoH + rhoHe + rhoMet + rhoCO) / u.amu
         
-        xHI = data["ramses", "hydro_H_01"]
-        xHII = data["ramses", "hydro_H_02"]
+        xHI = data["gas", "hydrogen_01"] # ["ramses", "hydro_H_01"]
+        xHII = data["gas", "hydrogen_02"] # ["ramses", "hydro_H_02"]
         
         nH = data["gas", "hydrogen_number_density"] * (xHI + xHII) + data["gas", "H2_number_density"]
         

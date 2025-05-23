@@ -63,8 +63,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
             nCells = len(data["gas", "density"].to("g/cm**3").flatten())
             rho = data["gas", "density"].to("g/cm**3").value.flatten()
             
-            #Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
-            Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
+            # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
+            # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
             
             ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
             cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
@@ -79,8 +80,8 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
             el  = coll_line_dict[line]["ion"].split("_")[0]           # C,    O,      Fe
             ion_roman = coll_line_dict[line]["ion"].split("_")[1]     # II,   III,    VII       
             
-            nel = rho * data["ramses", f"hydro_{met_data[el]['name']}_fraction"].flatten() / met_data[el]["mass"].to("g").value
-            xion = data["ramses", f"hydro_{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
+            nel = rho * data["gas", f"{met_data[el]['name']}_fraction"].flatten() / met_data[el]["mass"].to("g").value
+            xion = data["gas", f"{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
             
             # get emisitivity of cells based on T and ne
             loc_emis = coll_line_dict[line]["emis_grid"](to_interp)
@@ -106,8 +107,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
             nCells = len(data["gas", "density"].to("g/cm**3").flatten())
             rho = data["gas", "density"].to("g/cm**3").value.flatten()
             
-            #Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
-            Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
+            # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
+            # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")).flatten()
 
             ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
             cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
@@ -132,8 +134,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
             ion_col_roman = ion_roman[:-1]
             
             nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value.flatten()
-            xion = data["ramses", f"hydro_{el}_{roman_numerals[ion_roman]:02d}"].flatten()
-            xion_col = data["ramses", f"hydro_{el}_{roman_numerals[ion_col_roman]:02d}"].flatten()
+            
+            xion = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
+            xion_col = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_col_roman]:02d}"].flatten()
             
             loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
             loc_rec_emis *= ne * nel * xion # NOTE * df_gas[f"{el}_dep"]

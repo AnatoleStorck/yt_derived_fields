@@ -82,9 +82,9 @@ def _initialize_metal_cooling(ds):
                 data["ramses", "hydro_cooling_dust"] -
                 data["ramses", "hydro_cooling_CO"])
         
-    ds.add_field(name=("ramses", "hydro_cooling_metal"),
+    ds.add_field(name=("gas", "cooling_metal"),
                 function=_metal_cooling,
-                units="dimensionless",
+                units="erg/s/cm**3",
                 sampling_type="cell",
                 display_name="Metal cooling",)
 
@@ -101,9 +101,9 @@ def _initialize_photoheating_heating(ds):
                 data["ramses", "hydro_heating_ct"] -
                 cr_heating)
         
-    ds.add_field(name=("ramses", "hydro_photoheating_heating"),
+    ds.add_field(name=("gas", "photoheating_heating"),
                 function=_photoheating_heating,
-                units="dimensionless",
+                units="erg/s/cm**3",
                 sampling_type="cell",
                 display_name="Photoheating heating",)
     
@@ -115,7 +115,10 @@ def _initialize_H2_cooling(ds, H2_cooling):
         
         nH = data["gas", "hydrogen_number_density"].to("cm**-3")
         nH2 = data["gas", "H2_number_density"].to("cm**-3")
-        Tgas = (data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")
+        
+        # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+        Tgas = data["gas", "temperature"].to("K")
+        #Tgas = (data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K")
         
         cooling_H2 = np.zeros(nH.shape)
         
@@ -126,8 +129,9 @@ def _initialize_H2_cooling(ds, H2_cooling):
 
         return cooling_H2
 
-    ds.add_field(name=("ramses", "hydro_cooling_H2"),
+    ds.add_field(name=("gas", "cooling_H2"),
                 function=_H2_cooling,
+                units="erg/s/cm**3",
                 sampling_type="cell",
                 display_name="H2 cooling",)
 
@@ -147,6 +151,7 @@ def create_cooling_derived_fields(ds, H2_cooling="moseley"):
     """
     
     _initialize_metal_cooling(ds)
+    _initialize_photoheating_heating(ds)
     
     if H2_cooling is not None:
         if H2_cooling == "moseley":
