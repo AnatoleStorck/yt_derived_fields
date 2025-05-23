@@ -1,22 +1,19 @@
 [fields.ramses.hydro_temperature]
-aliases = ["temperature"]
-# Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+aliases = ["temperature"] # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"
 
-# MASS FRACTIONS
-
-# In Megatron, Metallicity is the iron mass fraction
-[fields.gas.metallicity]
+[fields.gas.metallicity] # In Megatron, Metallicity is the iron mass fraction
 aliases = ["iron_fraction"]
 units = "1"
 display_name = "Iron Mass Fraction"
+
 [fields.ramses.Metallicity]
 aliases = ["iron_fraction"]
 units = "1"
 display_name = "Iron Mass Fraction"
 
-[fields.ramses.hydro_oxygen_fraction]
+[fields.ramses.hydro_oxygen_fraction] # A COMMENT
 aliases = ["oxygen_fraction"]
 units = "1"
 display_name = "Oxygen Mass Fraction"
@@ -61,9 +58,7 @@ aliases = ["CO_fraction"]
 units = "1"
 display_name = "CO Mass Fraction"
 
-
 # IONIZATION FRACTIONS (metals at the bottom of the file)
-
 # HYDROGEN
 [fields.ramses.hydro_H_01]
 aliases = ["hydrogen_01"]
@@ -84,125 +79,105 @@ aliases = ["helium_03"]
 units = "1"
 display_name = "HeIII Ionization Fraction"
 
-
-
-
-
-
-
-
-
-
-
 # COOLING AND HEATING RATES
-
 [fields.ramses.hydro_cooling_rate]
 aliases = ["cooling_rate"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Cooling Rate"
 
 [fields.ramses.hydro_heating_rate]
 aliases = ["heating_rate"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Heating Rate"
 
 [fields.ramses.hydro_cooling_primordial]
 aliases = ["cooling_primordial"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Primordial Cooling Rate"
 
 [fields.ramses.hydro_cooling_fine_structure]
 aliases = ["cooling_fine_structure"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Fine Structure Cooling Rate"
 
 [fields.ramses.hydro_cooling_CII]
 aliases = ["cooling_CII"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "CII Cooling Rate"
 
 [fields.ramses.hydro_cooling_OI]
 aliases = ["cooling_OI"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "OI Cooling Rate"
 
 [fields.ramses.hydro_cooling_CO]
 aliases = ["cooling_CO"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "CO Cooling Rate"
 
 [fields.ramses.hydro_cooling_dust]
 aliases = ["cooling_dust"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Dust Cooling Rate"
 
 [fields.ramses.hydro_cooling_dust_rec]
 aliases = ["cooling_dust_rec"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Dust Recombination Cooling Rate"
 
 [fields.ramses.hydro_heating_cr]
 aliases = ["heating_cr"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Cosmic Ray Heating Rate"
 
 [fields.ramses.hydro_heating_pe]
 aliases = ["heating_pe"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Photoelectric Heating Rate"
 
 [fields.ramses.hydro_heating_h2]
 aliases = ["heating_H2"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "H2 Heating Rate"
 
 [fields.ramses.hydro_heating_ct]
 aliases = ["heating_ct"]
-units = "erg/s*cm**3"
+units = "erg/s/cm**3"
 display_name = "Compton Heating Rate"
-
-
-
-
-
-
-
-
-
 
 # STARS
 
-[fields.star.particle_initial_mass]
+[fields.io.particle_initial_mass]
 aliases = ["initial_mass"]
 units = "code_mass"
 display_name = "Initial Mass"
 
-[fields.star.particle_metallicity_001]
+[fields.io.particle_metallicity_001]
 aliases = ["met_Fe"]
 units = "1"
 display_name = "met_Fe"
 
-[fields.star.particle_metallicity_002]
+[fields.io.particle_metallicity_002]
 aliases = ["met_O"]
 units = "1"
 display_name = "met_O"
 
-[fields.star.particle_metallicity_003]
+[fields.io.particle_metallicity_003]
 aliases = ["met_N"]
 units = "1"
 display_name = "met_N"
 
-[fields.star.particle_metallicity_004]
+[fields.io.particle_metallicity_004]
 aliases = ["met_Mg"]
 units = "1"
 display_name = "met_Mg"
 
-[fields.star.particle_metallicity_005]
+[fields.io.particle_metallicity_005]
 aliases = ["met_Ne"]
 units = "1"
 display_name = "met_Ne"
 
-[fields.star.particle_metallicity_006]
+[fields.io.particle_metallicity_006]
 aliases = ["met_Si"]
 units = "1"
 display_name = "met_Si"
@@ -212,364 +187,321 @@ aliases = ["met_Ca"]
 units = "1"
 display_name = "met_Ca"
 
-[fields.star.particle_metallicity_008]
+[fields.io.particle_metallicity_008]
 aliases = ["met_C"]
 units = "1"
 display_name = "met_C"
 
-[fields.star.particle_metallicity_009]
+[fields.io.particle_metallicity_009]
 aliases = ["met_S"]
 units = "1"
 display_name = "met_S"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # EVEN MORE IONIZATION FRACTIONS
-
-
-# OXYGEN
-[fields.ramses.hydro_O_01]
+[fields.ramses.hydro_oxygen_01]
 aliases = ["oxygen_01"]
 units = "1"
 display_name = "OI Ionization Fraction"
-[fields.ramses.hydro_O_02]
+[fields.ramses.hydro_oxygen_02]
 aliases = ["oxygen_02"]
 units = "1"
 display_name = "OII Ionization Fraction"
-[fields.ramses.hydro_O_03]
+[fields.ramses.hydro_oxygen_03]
 aliases = ["oxygen_03"]
 units = "1"
 display_name = "OIII Ionization Fraction"
-[fields.ramses.hydro_O_04]
+[fields.ramses.hydro_oxygen_04]
 aliases = ["oxygen_04"]
 units = "1"
 display_name = "OIV Ionization Fraction"
-[fields.ramses.hydro_O_05]
+[fields.ramses.hydro_oxygen_05]
 aliases = ["oxygen_05"]
 units = "1"
 display_name = "OV Ionization Fraction"
-[fields.ramses.hydro_O_06]
+[fields.ramses.hydro_oxygen_06]
 aliases = ["oxygen_06"]
 units = "1"
 display_name = "OVI Ionization Fraction"
-[fields.ramses.hydro_O_07]
+[fields.ramses.hydro_oxygen_07]
 aliases = ["oxygen_07"]
 units = "1"
 display_name = "OVII Ionization Fraction"
-[fields.ramses.hydro_O_08]
+[fields.ramses.hydro_oxygen_08]
 aliases = ["oxygen_08"]
 units = "1"
 display_name = "OVIII Ionization Fraction"
 
-# NEON
-[fields.ramses.hydro_Ne_01]
+[fields.ramses.hydro_neon_01]
 aliases = ["neon_01"]
 units = "1"
 display_name = "NeI Ionization Fraction"
-[fields.ramses.hydro_Ne_02]
+[fields.ramses.hydro_neon_02]
 aliases = ["neon_02"]
 units = "1"
 display_name = "NeII Ionization Fraction"
-[fields.ramses.hydro_Ne_03]
+[fields.ramses.hydro_neon_03]
 aliases = ["neon_03"]
 units = "1"
 display_name = "NeIII Ionization Fraction"
-[fields.ramses.hydro_Ne_04]
+[fields.ramses.hydro_neon_04]
 aliases = ["neon_04"]
 units = "1"
 display_name = "NeIV Ionization Fraction"
-[fields.ramses.hydro_Ne_05]
+[fields.ramses.hydro_neon_05]
 aliases = ["neon_05"]
 units = "1"
 display_name = "NeV Ionization Fraction"
-[fields.ramses.hydro_Ne_06]
+[fields.ramses.hydro_neon_06]
 aliases = ["neon_06"]
 units = "1"
 display_name = "NeVI Ionization Fraction"
-[fields.ramses.hydro_Ne_07]
+[fields.ramses.hydro_neon_07]
 aliases = ["neon_07"]
 units = "1"
 display_name = "NeVII Ionization Fraction"
-[fields.ramses.hydro_Ne_08]
+[fields.ramses.hydro_neon_08]
 aliases = ["neon_08"]
 units = "1"
 display_name = "NeVIII Ionization Fraction"
-[fields.ramses.hydro_Ne_09]
+[fields.ramses.hydro_neon_09]
 aliases = ["neon_09"]
 units = "1"
 display_name = "NeIX Ionization Fraction"
-[fields.ramses.hydro_Ne_10]
+[fields.ramses.hydro_neon_10]
 aliases = ["neon_10"]
 units = "1"
 display_name = "NeX Ionization Fraction"
 
-# CARBON
-[fields.ramses.hydro_C_01]
+[fields.ramses.hydro_carbon_01]
 aliases = ["carbon_01"]
 units = "1"
 display_name = "CI Ionization Fraction"
-[fields.ramses.hydro_C_02]
+[fields.ramses.hydro_carbon_02]
 aliases = ["carbon_02"]
 units = "1"
 display_name = "CII Ionization Fraction"
-[fields.ramses.hydro_C_03]
+[fields.ramses.hydro_carbon_03]
 aliases = ["carbon_03"]
 units = "1"
 display_name = "CIII Ionization Fraction"
-[fields.ramses.hydro_C_04]
+[fields.ramses.hydro_carbon_04]
 aliases = ["carbon_04"]
 units = "1"
 display_name = "CIV Ionization Fraction"
-[fields.ramses.hydro_C_05]
+[fields.ramses.hydro_carbon_05]
 aliases = ["carbon_05"]
 units = "1"
 display_name = "CV Ionization Fraction"
-[fields.ramses.hydro_C_06]
+[fields.ramses.hydro_carbon_06]
 aliases = ["carbon_06"]
 units = "1"
 display_name = "CVI Ionization Fraction"
 
-# SULFUR
-[fields.ramses.hydro_S_01]
+[fields.ramses.hydro_sulfur_01]
 aliases = ["sulfur_01"]
 units = "1"
 display_name = "SI Ionization Fraction"
-[fields.ramses.hydro_S_02]
+[fields.ramses.hydro_sulfur_02]
 aliases = ["sulfur_02"]
 units = "1"
 display_name = "SII Ionization Fraction"
-[fields.ramses.hydro_S_03]
+[fields.ramses.hydro_sulfur_03]
 aliases = ["sulfur_03"]
 units = "1"
 display_name = "SIII Ionization Fraction"
-[fields.ramses.hydro_S_04]
+[fields.ramses.hydro_sulfur_04]
 aliases = ["sulfur_04"]
 units = "1"
 display_name = "SIV Ionization Fraction"
-[fields.ramses.hydro_S_05]
+[fields.ramses.hydro_sulfur_05]
 aliases = ["sulfur_05"]
 units = "1"
 display_name = "SV Ionization Fraction"
-[fields.ramses.hydro_S_06]
+[fields.ramses.hydro_sulfur_06]
 aliases = ["sulfur_06"]
 units = "1"
 display_name = "SVI Ionization Fraction"
-[fields.ramses.hydro_S_07]
+[fields.ramses.hydro_sulfur_07]
 aliases = ["sulfur_07"]
 units = "1"
 display_name = "SVII Ionization Fraction"
-[fields.ramses.hydro_S_08]
+[fields.ramses.hydro_sulfur_08]
 aliases = ["sulfur_08"]
 units = "1"
 display_name = "SVIII Ionization Fraction"
-[fields.ramses.hydro_S_09]
+[fields.ramses.hydro_sulfur_09]
 aliases = ["sulfur_09"]
 units = "1"
 display_name = "SIX Ionization Fraction"
-[fields.ramses.hydro_S_10]
+[fields.ramses.hydro_sulfur_10]
 aliases = ["sulfur_10"]
 units = "1"
 display_name = "SX Ionization Fraction"
-[fields.ramses.hydro_S_11]
+[fields.ramses.hydro_sulfur_11]
 aliases = ["sulfur_11"]
 units = "1"
 display_name = "SXI Ionization Fraction"
 
-# MAGNESIUM
-[fields.ramses.hydro_Mg_01]
+[fields.ramses.hydro_magnesium_01]
 aliases = ["magnesium_01"]
 units = "1"
 display_name = "MgI Ionization Fraction"
-[fields.ramses.hydro_Mg_02]
+[fields.ramses.hydro_magnesium_02]
 aliases = ["magnesium_02"]
 units = "1"
 display_name = "MgII Ionization Fraction"
-[fields.ramses.hydro_Mg_03]
+[fields.ramses.hydro_magnesium_03]
 aliases = ["magnesium_03"]
 units = "1"
 display_name = "MgIII Ionization Fraction"
-[fields.ramses.hydro_Mg_04]
+[fields.ramses.hydro_magnesium_04]
 aliases = ["magnesium_04"]
 units = "1"
 display_name = "MgIV Ionization Fraction"
-[fields.ramses.hydro_Mg_05]
+[fields.ramses.hydro_magnesium_05]
 aliases = ["magnesium_05"]
 units = "1"
 display_name = "MgV Ionization Fraction"
-[fields.ramses.hydro_Mg_06]
+[fields.ramses.hydro_magnesium_06]
 aliases = ["magnesium_06"]
 units = "1"
 display_name = "MgVI Ionization Fraction"
-[fields.ramses.hydro_Mg_07]
+[fields.ramses.hydro_magnesium_07]
 aliases = ["magnesium_07"]
 units = "1"
 display_name = "MgVII Ionization Fraction"
-[fields.ramses.hydro_Mg_08]
+[fields.ramses.hydro_magnesium_08]
 aliases = ["magnesium_08"]
 units = "1"
 display_name = "MgVIII Ionization Fraction"
-[fields.ramses.hydro_Mg_09]
+[fields.ramses.hydro_magnesium_09]
 aliases = ["magnesium_09"]
 units = "1"
 display_name = "MgIX Ionization Fraction"
-[fields.ramses.hydro_Mg_10]
+[fields.ramses.hydro_magnesium_10]
 aliases = ["magnesium_10"]
 units = "1"
 display_name = "MgX Ionization Fraction"
-[fields.ramses.hydro_Mg_11]
+[fields.ramses.hydro_magnesium_11]
 aliases = ["magnesium_11"]
 units = "1"
 display_name = "MgXI Ionization Fraction"
 
-# SILICON
-[fields.ramses.hydro_Si_01]
+[fields.ramses.hydro_silicon_01]
 aliases = ["silicon_01"]
 units = "1"
 display_name = "SiI Ionization Fraction"
-[fields.ramses.hydro_Si_02]
+[fields.ramses.hydro_silicon_02]
 aliases = ["silicon_02"]
 units = "1"
 display_name = "SiII Ionization Fraction"
-[fields.ramses.hydro_Si_03]
+[fields.ramses.hydro_silicon_03]
 aliases = ["silicon_03"]
 units = "1"
 display_name = "SiIII Ionization Fraction"
-[fields.ramses.hydro_Si_04]
+[fields.ramses.hydro_silicon_04]
 aliases = ["silicon_04"]
 units = "1"
 display_name = "SiIV Ionization Fraction"
-[fields.ramses.hydro_Si_05]
+[fields.ramses.hydro_silicon_05]
 aliases = ["silicon_05"]
 units = "1"
 display_name = "SiV Ionization Fraction"
-[fields.ramses.hydro_Si_06]
+[fields.ramses.hydro_silicon_06]
 aliases = ["silicon_06"]
 units = "1"
 display_name = "SiVI Ionization Fraction"
-[fields.ramses.hydro_Si_07]
+[fields.ramses.hydro_silicon_07]
 aliases = ["silicon_07"]
 units = "1"
 display_name = "SiVII Ionization Fraction"
-[fields.ramses.hydro_Si_08]
+[fields.ramses.hydro_silicon_08]
 aliases = ["silicon_08"]
 units = "1"
 display_name = "SiVIII Ionization Fraction"
-[fields.ramses.hydro_Si_09]
+[fields.ramses.hydro_silicon_09]
 aliases = ["silicon_09"]
 units = "1"
 display_name = "SiIX Ionization Fraction"
-[fields.ramses.hydro_Si_10]
+[fields.ramses.hydro_silicon_10]
 aliases = ["silicon_10"]
 units = "1"
 display_name = "SiX Ionization Fraction"
-[fields.ramses.hydro_Si_11]
+[fields.ramses.hydro_silicon_11]
 aliases = ["silicon_11"]
 units = "1"
 display_name = "SiXI Ionization Fraction"
 
-# NITROGEN
-[fields.ramses.hydro_N_01]
+[fields.ramses.hydro_nitrogen_01]
 aliases = ["nitrogen_01"]
 units = "1"
 display_name = "NI Ionization Fraction"
-[fields.ramses.hydro_N_02]
+[fields.ramses.hydro_nitrogen_02]
 aliases = ["nitrogen_02"]
 units = "1"
 display_name = "NII Ionization Fraction"
-[fields.ramses.hydro_N_03]
+[fields.ramses.hydro_nitrogen_03]
 aliases = ["nitrogen_03"]
 units = "1"
 display_name = "NIII Ionization Fraction"
-[fields.ramses.hydro_N_04]
+[fields.ramses.hydro_nitrogen_04]
 aliases = ["nitrogen_04"]
 units = "1"
 display_name = "NIV Ionization Fraction"
-[fields.ramses.hydro_N_05]
+[fields.ramses.hydro_nitrogen_05]
 aliases = ["nitrogen_05"]
 units = "1"
 display_name = "NV Ionization Fraction"
-[fields.ramses.hydro_N_06]
+[fields.ramses.hydro_nitrogen_06]
 aliases = ["nitrogen_06"]
 units = "1"
 display_name = "NVI Ionization Fraction"
-[fields.ramses.hydro_N_07]
+[fields.ramses.hydro_nitrogen_07]
 aliases = ["nitrogen_07"]
 units = "1"
 display_name = "NVII Ionization Fraction"
 
-
-# IRON
-[fields.ramses.hydro_Fe_01]
+[fields.ramses.hydro_iron_01]
 aliases = ["iron_01"]
 units = "1"
 display_name = "FeI Ionization Fraction"
-[fields.ramses.hydro_Fe_02]
+[fields.ramses.hydro_iron_02]
 aliases = ["iron_02"]
 units = "1"
 display_name = "FeII Ionization Fraction"
-[fields.ramses.hydro_Fe_03]
+[fields.ramses.hydro_iron_03]
 aliases = ["iron_03"]
 units = "1"
 display_name = "FeIII Ionization Fraction"
-[fields.ramses.hydro_Fe_04]
+[fields.ramses.hydro_iron_04]
 aliases = ["iron_04"]
 units = "1"
 display_name = "FeIV Ionization Fraction"
-[fields.ramses.hydro_Fe_05]
+[fields.ramses.hydro_iron_05]
 aliases = ["iron_05"]
 units = "1"
 display_name = "FeV Ionization Fraction"
-[fields.ramses.hydro_Fe_06]
+[fields.ramses.hydro_iron_06]
 aliases = ["iron_06"]
 units = "1"
 display_name = "FeVI Ionization Fraction"
-[fields.ramses.hydro_Fe_07]
+[fields.ramses.hydro_iron_07]
 aliases = ["iron_07"]
 units = "1"
 display_name = "FeVII Ionization Fraction"
-[fields.ramses.hydro_Fe_08]
+[fields.ramses.hydro_iron_08]
 aliases = ["iron_08"]
 units = "1"
 display_name = "FeVIII Ionization Fraction"
-[fields.ramses.hydro_Fe_09]
+[fields.ramses.hydro_iron_09]
 aliases = ["iron_09"]
 units = "1"
 display_name = "FeIX Ionization Fraction"
-[fields.ramses.hydro_Fe_10]
+[fields.ramses.hydro_iron_10]
 aliases = ["iron_10"]
 units = "1"
 display_name = "FeX Ionization Fraction"
-[fields.ramses.hydro_Fe_11]
+[fields.ramses.hydro_iron_11]
 aliases = ["iron_11"]
 units = "1"
 display_name = "FeXI Ionization Fraction"
