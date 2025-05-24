@@ -2,13 +2,17 @@
 aliases = ["temperature"] # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"
+[fields.ramses.temperature]
+aliases = ["temperature"] # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+units = "code_temperature"
+display_name = "Temperature"
 
-[fields.gas.metallicity] # In Megatron, Metallicity is the iron mass fraction
+
+[fields.ramses.Metallicity]              # In Megatron (CCM), Metallicity is the iron mass fraction
 aliases = ["iron_fraction"]
 units = "1"
-display_name = "Iron Mass Fraction"
-
-[fields.ramses.Metallicity]
+display_name = "Iron Mass Fraction"     # In Megatron (CP), metallicity is the iron mass fraction
+[fields.ramses.metallicity]
 aliases = ["iron_fraction"]
 units = "1"
 display_name = "Iron Mass Fraction"

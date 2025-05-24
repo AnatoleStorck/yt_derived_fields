@@ -3,6 +3,7 @@
 # Author: Anatole Storck
 
 import numpy as np
+from pathlib import Path
 
 class ConformalTime:
     
@@ -46,10 +47,12 @@ class ConformalTime:
                  self.t_frw_yr,
                  self.tau_frw,
                  self.aexp_frw,
-                 self.n_frw) = [np.load("conformal_time_var.npz")[field] 
+                 self.n_frw) = [np.load(f"{Path(__file__).parent}/conformal_time_var.npz")[field] 
                                 for field in ["t_frw", "t_frw_yr", "tau_frw", "aexp_frw", "n_frw"]]
-                 
+                #print("Conformal time tables loaded successfully.")
+
             except:
+                #print("Generating conformal time tables...")
                 self.aexp_frw = np.zeros(self.n_frw + 1)
                 self.hexp_frw = np.zeros(self.n_frw + 1)
                 self.tau_frw = np.zeros(self.n_frw + 1)

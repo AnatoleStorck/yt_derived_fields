@@ -4,6 +4,7 @@
 # Author: Anatole Storck
 
 from yt import units as u
+from yt_derived_fields.cosmology import conformal_time as ct
 
 def create_star_derived_fields(ds):
     
@@ -14,8 +15,6 @@ def _initialize_star_age(ds):
 
     # Usually, the birth time of a star in a cosmological simulation is stored in conformal
     # lookback time. For RT simulations, the birth time is instead in proper lookback time.
-
-    import cosmology.conformal_time as ct  # converted routine of the RAMSES conformal_time.f90
 
     # Initialize the conformal time class
     cosmology = ct.ConformalTime()

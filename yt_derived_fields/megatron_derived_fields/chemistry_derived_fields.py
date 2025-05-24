@@ -35,7 +35,7 @@ def _initialize_metal_density(ds, element: str):
     def _metal_density(field, data):
         
         if element == "Fe":                        # NOTE: iron_fraction is "Metallicity"
-            metal_density = data["gas", "density"] * data["ramses", "Metallicity"]
+            metal_density = data["gas", "density"] * data["gas", "iron_fraction"]
         else:
             metal_density = (data["gas", "density"] *
                              data["gas", f"{metal_name}_fraction"])
@@ -54,11 +54,11 @@ def _initialize_metallicity(ds):
         rho = data["gas", "density"]
         Z = np.zeros_like(rho)
         for element in metal_data:
-            Z += data["gas", f"{element}_density"]
+            Z += data["gas", f"{metal_data[element]['name']}_density"]
         Z /= rho
         return Z
 
-    ds.add_field(name=("gas", "metallicity"),
+    ds.add_field(name=("gas", "real_metallicity"),
                 function=_metallicity,
                 units='1',
                 sampling_type="cell",
@@ -69,8 +69,8 @@ def _initialize_primordial_density(ds, element):
     def _primordial_density(field, data):
         return (data["gas", "density"] *
                 prim_data[element]["massFrac"] *
-                (1 - data["gas", "metallicity"]))
-    
+                (1 - data["gas", "real_metallicity"]))
+
     ds.add_field(name=("gas", f"{prim_name}_density"),
                 function=_primordial_density,
                 units="amu/cm**3",
