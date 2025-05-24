@@ -9,11 +9,11 @@
 
 import os
 # Set the XUVTOP environment variable to the location of the CHIANTI database
-os.environ["XUVTOP"] = "/mnt/glacier/chianti/"
+os.environ["XUVTOP"] = "/home/astorck/databases/"
+import ChiantiPy.core as ch
 
 import numpy as np
 import pyneb as pn
-import ChiantiPy.core as ch
 from scipy.interpolate import RegularGridInterpolator, interp1d
 
 """ Physical Constants """
@@ -50,7 +50,7 @@ pyneb_atoms = {
     "C2": pn.Atom('C', 2, NLevels=15),
     "C3": pn.Atom('C', 3, NLevels=15),
     "C4": pn.Atom('C', 4, NLevels=15),
-    "O1": pn.Atom('O', 1, NLevels=15),
+    "O1": pn.Atom('O', 1, NLevels=7),      # OI has only 7 levels in pyneb idk it was working with more on glamdring
     "O2": pn.Atom('O', 2, NLevels=15),
     "O3": pn.Atom('O', 3, NLevels=15),
     "S2": pn.Atom('S', 2, NLevels=15),

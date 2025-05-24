@@ -11,6 +11,7 @@
 # Author: Anatole Storck
 
 from yt import units as u
+from pathlib import Path
 import numpy as np
 
 met_data = {
@@ -34,7 +35,7 @@ roman_numerals = {
     "VII": 7, "VIII": 8, "IX": 9, "X": 10, "XI": 11, "XII": 12
 }
 
-_spectral_data = "/mnt/users/storcka/analysis/spectra/spectral_cache"
+_spectral_data = f"{Path(__file__).parent.parent}/spectral_utils"
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None):
     """
