@@ -1,21 +1,26 @@
-[fields.ramses.hydro_temperature]
-aliases = ["temperature"] # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+[fields.ramses.hydro_temperature]       # In Megatron (CCM)
+aliases = ["temperature"]              # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"
-[fields.ramses.temperature]
-aliases = ["temperature"] # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
+[fields.ramses.temperature]             # In Megatron (CP) 
+aliases = ["temperature"]              # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"
 
 
-[fields.ramses.Metallicity]              # In Megatron (CCM), Metallicity is the iron mass fraction
-aliases = ["iron_fraction"]
-units = "1"
-display_name = "Iron Mass Fraction"     # In Megatron (CP), metallicity is the iron mass fraction
-[fields.ramses.metallicity]
+[fields.ramses.metallicity]              # In Megatron (CP)
 aliases = ["iron_fraction"]
 units = "1"
 display_name = "Iron Mass Fraction"
+[fields.ramses.Metallicity]              # In Megatron (CCM)
+aliases = ["iron_fraction"]
+units = "1"
+display_name = "Iron Mass Fraction"
+[fields.ramses.iron_fraction]            # IDK why but this works
+aliases = ["iron_fraction"]
+units = "1"
+display_name = "Iron Mass Fraction"
+
 
 [fields.ramses.hydro_oxygen_fraction] # A COMMENT
 aliases = ["oxygen_fraction"]
