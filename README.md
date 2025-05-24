@@ -12,12 +12,16 @@ Make derived fields in yt for simulations run with the RAMSES-RTZ code. Specific
    conda install -c conda-forge yt
    ```
 
-2. Install the repository:
+2. Install the repository and copy TOML for global yt configuration:
 
    ```shell
    git clone https://github.com/AnatoleStorck/yt_derived_fields.git
    cd yt_derived_fields
    pip install -e .
+   ```
+
+   ```shell
+   cp yt_derived_fields/megatron_derived_fields/yt.toml ~/.config/yt/.
    ```
 
 3. Use the derived field functions:
