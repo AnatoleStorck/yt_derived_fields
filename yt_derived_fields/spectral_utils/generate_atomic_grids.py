@@ -1,9 +1,11 @@
-# This code is used to calculate the emissivities of various lines across (rho, T) using pyneb and chianti.
+# This code is used to calculate the emissivities of various lines across (ne, T) using pyneb and chianti.
 # NOTE: Requires the CHIANTI database to be installed and the XUVTOP environment variable to be correctly set.
 
 # The database is saved as coll_line_dict.npy and rec_line_dict.npy for collisional and recombination lines respectively.
 # the database contains metadata about the lines, including the ion, atom, upper and lower levels, as well
-# as the emissivity grid, which is a RegularGridInterpolator object taking in rho [g/cm**3] and T [K].
+# as the emissivity grid, which is a RegularGridInterpolator object taking in ne [cm**-3] and T [K].
+
+# TODO: Add infrared lines, maybe create two different dicts "optical_coll_line_dict" and "infrared_coll_line_dict"
 
 # Written by Harley Katz and modified by Anatole Storck
 
@@ -216,7 +218,7 @@ coll_line_dict = {
             "lev_d": 2,
             "e_weight": element_weights["Ne"],
             },
-        # Nitrogen 2
+        # Nitrogen
         "N2-6583": {
             "ion": "N_II",
             "atom": pyneb_atoms["N2"],
@@ -330,21 +332,6 @@ coll_line_dict = {
             "lev_d": 1,
             "e_weight": element_weights["S"],
             },
-        # Magnesium
-        #"Mg2-2796": {
-        #    "ion": "Mg_II",
-        #    "atom": pyneb_atoms["Mg2"],
-        #    "lev_u": 3,
-        #    "lev_d": 1,
-        #    "e_weight": element_weights["Mg"],
-        #    },
-        #"Mg2-2803": {
-        #    "ion": "Mg_II",
-        #    "atom": pyneb_atoms["Mg2"],
-        #    "lev_u": 2,
-        #    "lev_d": 1,
-        #    "e_weight": element_weights["Mg"],
-        #    },
 }
 
 # Initialize the emissivity grids (emission at each temperature and electron density)
