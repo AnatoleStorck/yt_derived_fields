@@ -18,6 +18,8 @@ def create_rt_derived_fields(ds, bands="all"):
         ds (yt.Dataset): The dataset object.
         bands (str, optional): The radiation bands to initialize. The bands are IR, Opt., FUV, LW, EUV1, EUV2, EUV3, EUV4. Defaults to "all".
     """
+    
+    _fl = ds.field_list #NOTE: Need to run this somehow to ensure the fields are registered and read the parameters correctly
 
     if bands == "all":
         for band in energy_bands.keys():
@@ -38,8 +40,8 @@ def _initialize_radiation_energy_density(ds, band: str):
 
         return photon_density_field * u.erg/u.s/u.cm**2
 
-    ds.add_field(name=("gas", f"radiation_energy_density_{band}"),
+    ds.add_field(name=("rt", f"photon_energy_density_{band}"),
                  function=_radiation_energy_density,
-                 units="erg/cm**3",
+                 units="erg/s/cm**2",
                  sampling_type="cell",
-                 display_name=f"Radiation energy density ({band})")
+                 display_name=f"Photon energy density ({band})")
