@@ -14,6 +14,8 @@ from yt import units as u
 from pathlib import Path
 import numpy as np
 
+from yt_derived_fields.megatron_derived_fields import chemistry_derived_fields as chem_fields
+
 met_data = {
     "O":    {"name" : "oxygen",     "mass": 15.9994 * u.amu,     "Nion": 8 },
     "Ne":   {"name" : "neon",       "mass": 20.1797 * u.amu,     "Nion": 10},
@@ -48,6 +50,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
         rec_lines (list, optional): A list of recombination lines to consider. Defaults to None.
                                      Example: ["Lya", "Hb", "He-1640"]
     """
+    
+    # Need to generate the chemistry derived fields first, as we need to calculate the electron number density
+    chem_fields.create_chemistry_derived_fields(ds, molecules=False, mean_molecular_weight=False)
     
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
