@@ -9,6 +9,8 @@
 # Author: Anatole Storck
 
 from yt import units as u
+import yt_derived_fields.megatron_derived_fields.chemistry_derived_fields as chemistry_fields
+
 import numpy as np
 
 # Converted from coolrates_module.f90
@@ -90,6 +92,7 @@ def _initialize_metal_cooling(ds):
 
 # Assuming photoheating is the remaining heating
 def _initialize_photoheating_heating(ds):
+    
     def _photoheating_heating(field, data):
         if ("ramses", "hydro_heating_cr") not in ds.derived_field_list:
             cr_heating = 0
@@ -127,7 +130,7 @@ def _initialize_H2_cooling(ds, H2_cooling):
         
         cooling_H2[temperature_mask] = H2_cooling(nH.value, nH2.value, Tgas.value)[temperature_mask]
 
-        return cooling_H2
+        return cooling_H2 * u.erg / (u.s * u.cm**3) # NOTE: the H2 cooling function returns in erg/s/cm^3
 
     ds.add_field(name=("gas", "cooling_H2"),
                 function=_H2_cooling,
@@ -154,6 +157,9 @@ def create_cooling_derived_fields(ds, H2_cooling="moseley"):
     _initialize_photoheating_heating(ds)
     
     if H2_cooling is not None:
+        
+        chemistry_fields.create_chemistry_derived_fields(ds, electron_number_density=False, mean_molecular_weight=False)
+        
         if H2_cooling == "moseley":
             H2_cooling_func = cooling_H2_moseley
         elif H2_cooling == "H2GP":
