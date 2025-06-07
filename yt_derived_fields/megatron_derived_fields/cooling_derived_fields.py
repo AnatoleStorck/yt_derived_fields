@@ -81,6 +81,7 @@ def _initialize_metal_cooling(ds):
     def _metal_cooling(field, data):
         return (data["ramses", "hydro_cooling_rate"] -
                 data["ramses", "hydro_cooling_primordial"] -
+                data["ramses", "hydro_cooling_dust_rec"] -
                 data["ramses", "hydro_cooling_dust"] -
                 data["ramses", "hydro_cooling_CO"])
         
