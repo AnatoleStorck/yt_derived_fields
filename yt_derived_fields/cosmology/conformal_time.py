@@ -38,6 +38,12 @@ class ConformalTime:
         t = (self.t_frw_yr[i] * (aexp - self.aexp_frw[i-1]) / (self.aexp_frw[i] - self.aexp_frw[i-1]) +
              self.t_frw_yr[i-1] * (aexp - self.aexp_frw[i]) / (self.aexp_frw[i-1] - self.aexp_frw[i]))
         return t
+    
+    def ct_redshift2time(self, z):
+        # Return time from Big Bang in yr
+        lookback_time = self.ct_aexp2time(1 / (1 + z))
+        time = lookback_time - self.ct_aexp2time(0)
+        return time
 
     def ct_init_cosmo(self, omega_m, omega_l, omega_k, h0):
         # h0 is in km/s/Mpc
