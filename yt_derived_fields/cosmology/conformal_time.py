@@ -1,5 +1,6 @@
 # Generates RAMSES cosmology tables to compute consistent time conversions from outputs
-# (converted from conformal_time.f90)
+# [based off of the routines in conformal_time.f90]
+
 # Author: Anatole Storck
 
 import numpy as np
@@ -55,10 +56,8 @@ class ConformalTime:
                  self.aexp_frw,
                  self.n_frw) = [np.load(f"{Path(__file__).parent}/conformal_time_var.npz")[field] 
                                 for field in ["t_frw", "t_frw_yr", "tau_frw", "aexp_frw", "n_frw"]]
-                #print("Conformal time tables loaded successfully.")
 
             except:
-                #print("Generating conformal time tables...")
                 self.aexp_frw = np.zeros(self.n_frw + 1)
                 self.hexp_frw = np.zeros(self.n_frw + 1)
                 self.tau_frw = np.zeros(self.n_frw + 1)
@@ -68,6 +67,15 @@ class ConformalTime:
                 self.ct_friedman(omega_m, omega_l, omega_k, 1e-6, 1e-3)
                 # Convert time to yr
                 self.t_frw_yr = self.t_frw / (h0 / 3.08e19) / (365.25 * 24. * 3600.)
+
+    def ct_init_cosmo_megatron(self):
+        # MEGATRON cosmological parameters
+        self.ct_init_cosmo(
+                omega_m =   0.313899993896484E+00,
+                omega_l =   0.686094999313354E+00,
+                omega_k =   0.500679016113281E-05,
+                h0      =   0.672699966430664E+02,
+        )
 
     def ct_clear_cosmo(self):
         self.aexp_frw = None
