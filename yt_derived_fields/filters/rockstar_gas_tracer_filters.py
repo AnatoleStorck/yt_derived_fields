@@ -4,6 +4,7 @@
 
 
 import yt
+import unyt as u
 import glob
 import numpy as np
 
@@ -199,46 +200,62 @@ def dm_star_gastracer_union(pfilter, data):
     
     return filter
 
-def setup_dm_gas_tracers_field(ds):
+@yt.particle_filter(requires=["particle_family", "particle_mass"],
+                   filtered_type="io")
+def dm_star_union(pfilter, data):
+    dm_filter = data[pfilter.filtered_type, "particle_family"] == 1
+    filter = dm_filter
+
+    star_filter = data[pfilter.filtered_type, "particle_family"] == 2
+    filter |= star_filter
     
-    # start by initialzing grabbing cell data for the tracers
-    ds.add_mesh_sampling_particle_field(("gas", "dx"),
-                                        ptype="gas_tracer")
+    return filter
+
+def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
     
-    # generate new particle type filtering out NaN cell indices
-    ds.add_particle_filter("gas_tracer_noNaN")
+    if use_gas_tracers:
+        # start by initialzing grabbing cell data for the tracers
+        ds.add_mesh_sampling_particle_field(("gas", "dx"),
+                                            ptype="gas_tracer")
+        
+        # generate new particle type filtering out NaN cell indices
+        ds.add_particle_filter("gas_tracer_noNaN")
+        
+        # grab the gas tracer cell data
+        ds.add_mesh_sampling_particle_field(("gas", "volume"),
+                                            ptype="gas_tracer_noNaN")
+        [ds.add_mesh_sampling_particle_field(("gas", f"velocity_{axis}"),
+                                            ptype="gas_tracer_noNaN") for axis in ['x', 'y', 'z']]
+        
+        # Redefine particle positions for gas tracers
+        ds.add_field(("io", "particle_position_redefine_for_gas_tracers"),
+                    sampling_type="particle",
+                    function=particle_position_redefine_for_gas_tracers,
+                    units="Mpccm/h",)
+        [ds.add_field(("io", "particle_position_redefine_for_gas_tracers_" + axis),
+                    sampling_type="particle",
+                    function=eval(f"particle_position_redefine_for_gas_tracers_{axis}"),
+                    units="Mpccm/h") for axis in ['x', 'y', 'z']]
+        
+        # Redefine particle velocities for gas tracers
+        ds.add_field(("io", "particle_velocity_redefine_for_gas_tracers"),
+                    sampling_type="particle",
+                    function=particle_velocity_redefine_for_gas_tracers,
+                    units="km/s",)
+        [ds.add_field(("io", "particle_velocity_redefine_for_gas_tracers_" + axis),
+                    sampling_type="particle",
+                    function=eval(f"particle_velocity_redefine_for_gas_tracers_{axis}"),
+                    units="km/s") for axis in ['x', 'y', 'z']]
     
-    # grab the gas tracer cell data
-    ds.add_mesh_sampling_particle_field(("gas", "volume"),
-                                        ptype="gas_tracer_noNaN")
-    [ds.add_mesh_sampling_particle_field(("gas", f"velocity_{axis}"),
-                                        ptype="gas_tracer_noNaN") for axis in ['x', 'y', 'z']]
-    
-    # Redefine particle positions for gas tracers
-    ds.add_field(("io", "particle_position_redefine_for_gas_tracers"),
-                sampling_type="particle",
-                function=particle_position_redefine_for_gas_tracers,
-                units="Mpccm/h",)
-    [ds.add_field(("io", "particle_position_redefine_for_gas_tracers_" + axis),
-                  sampling_type="particle",
-                  function=eval(f"particle_position_redefine_for_gas_tracers_{axis}"),
-                  units="Mpccm/h") for axis in ['x', 'y', 'z']]
-    
-    # Redefine particle velocities for gas tracers
-    ds.add_field(("io", "particle_velocity_redefine_for_gas_tracers"),
-                sampling_type="particle",
-                function=particle_velocity_redefine_for_gas_tracers,
-                units="km/s",)
-    [ds.add_field(("io", "particle_velocity_redefine_for_gas_tracers_" + axis),
-                  sampling_type="particle",
-                  function=eval(f"particle_velocity_redefine_for_gas_tracers_{axis}"),
-                  units="km/s") for axis in ['x', 'y', 'z']]
-    
-    # Rescale particle identities for DM and stars by N_dm and N_gas_tracer
-    ds.add_field(("io", "particle_identity_rescaled"),
-                sampling_type="particle",
-                function=particle_identity_rescaled,
-                units="dimensionless")
-    
+    if use_stars or use_gas_tracers:
+        # Rescale particle identities for DM and stars by N_dm and N_gas_tracer
+        ds.add_field(("io", "particle_identity_rescaled"),
+                    sampling_type="particle",
+                    function=particle_identity_rescaled,
+                    units="dimensionless")
+
     # Add the union of DM, star, and gas tracer particles (taken from io particles)
-    ds.add_particle_filter("dm_star_gastracer_union")
+    if use_stars:
+        ds.add_particle_filter("dm_star_union")
+    if use_gas_tracers:
+        ds.add_particle_filter("dm_star_gastracer_union")
