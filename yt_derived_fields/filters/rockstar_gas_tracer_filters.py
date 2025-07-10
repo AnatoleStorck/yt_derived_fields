@@ -168,7 +168,7 @@ def particle_identity_rescaled(field, data):
     
     # We multiply by 8 here as the IDs can go bigger than the number of particles
     io_id[gas_tracer_filter] = io_id[gas_tracer_filter] + (N_dm * 8)
-    io_id[star_filter] = io_id[star_filter] + (N_dm * 8) + N_gas_tracer
+    io_id[star_filter] = io_id[star_filter] + (N_dm * 8 * 8) + N_gas_tracer
     
     return io_id
 
