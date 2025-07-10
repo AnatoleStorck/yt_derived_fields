@@ -11,6 +11,7 @@ def create_star_derived_fields(ds):
     
     _initialize_star_age(ds)
     _initialize_pop3_star_filter(ds)
+    _initialize_pop3_aliveStatus(ds)
 
 
 def _initialize_star_age(ds):
@@ -78,3 +79,44 @@ def _initialize_pop3_star_filter(ds):
                           filtered_type="star")
     
     ds.add_particle_filter("pop3")
+
+def _initialize_pop3_aliveStatus(ds):
+    """
+    Initialize the Pop. III star alive status field.
+    This field is True if the star is still alive, False otherwise.
+    """
+    
+    import numpy as np
+    def pop3_MSlifetime(mass):
+        """
+        Calculates the main-sequence lifetime of popIII stars of a given mass
+        returns the age in Myr
+        """
+        # Schaerer (2002) interpolation of age
+        a_fit = [0.7595398e+00, -3.7303953e+00, 1.4031973e+00, -1.7896967e-01]
+
+        age_gyr = 0.0
+        logm = np.log10(mass)
+
+        for i in range(len(a_fit)):
+            age_gyr += a_fit[i] * (logm**i)
+
+        age_gyr = 10.0**age_gyr
+        return age_gyr * 1000.0 # returns Myr
+    
+    def isAlive(field, data):
+        # Get the age of the star
+        age = data["pop3", "age"].to("Myr").flatten()
+        particle_mass = data["pop3", "particle_initial_mass"].to("Msun").value.flatten()
+
+        # Get the main-sequence lifetime of the pop3
+        ms_lifetime = pop3_MSlifetime(particle_mass) * u.Myr
+
+        # A star is still alive if its age is less than its main-sequence lifetime
+        return age < ms_lifetime
+
+    ds.add_field(name=("pop3", "isAlive"),
+                 function=isAlive,
+                 force_override=True,
+                 sampling_type="particle",
+                 display_name="Pop. III Star Alive Status")
