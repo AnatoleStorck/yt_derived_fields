@@ -137,7 +137,7 @@ def _initialize_electron_number_density(ds):
         xHeIII = data["gas", "helium_03"]       # ["ramses", "hydro_He_03"]
 
         nHeII = data["gas", "helium_number_density"] * xHeII
-        nHeIII = data["gas", "helium_number_density"] * xHeIII
+        nHeIII = data["gas", "helium_number_density"] * xHeIII * 2
         
         # Ionized metals electrons
         nEl_ion = np.zeros_like(nHII)
