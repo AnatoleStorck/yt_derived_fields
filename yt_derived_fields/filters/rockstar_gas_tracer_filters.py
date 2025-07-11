@@ -5,6 +5,8 @@
 
 import yt
 import unyt as u
+from yt.utilities.logger import ytLogger as mylog
+
 import glob
 import numpy as np
 
@@ -128,7 +130,7 @@ def particle_velocity_redefine_for_gas_tracers(field, data):
         
         new_tracer_vel = np.column_stack([tracer_cell_vel_x, tracer_cell_vel_y, tracer_cell_vel_z])
         
-        perturbation = np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-5  * u.km / u.s
+        perturbation = np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-3  * u.km / u.s
         
         new_tracer_vel[:, 0] += perturbation[:, 0]
         new_tracer_vel[:, 1] += perturbation[:, 1]
@@ -256,6 +258,8 @@ def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
 
     # Add the union of DM, star, and gas tracer particles (taken from io particles)
     if use_stars:
+        mylog.info("Adding particle filter for DM and stars.")
         ds.add_particle_filter("dm_star_union")
     if use_gas_tracers:
+        mylog.info("Adding particle filter for DM, stars, and gas tracers.")
         ds.add_particle_filter("dm_star_gastracer_union")
