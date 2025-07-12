@@ -51,13 +51,10 @@ def get_pop_3_spectrum(data):
     units of erg/s/A
     """
 
-    # Initialize the pop 3 spectrum
-    p3_spec = None
-    
     pop3_alive_status = data["pop3", "isAlive"]
 
     if not np.any(pop3_alive_status):
-        return p3_spec
+        return np.zeros_like(wavelength_space())
 
     # Get a list of active Pop III masses
     active_popIII_masses = data["pop3", "initial_mass"][pop3_alive_status].to("Msun").value

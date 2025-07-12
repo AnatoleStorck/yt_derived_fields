@@ -74,11 +74,10 @@ def get_pop_2_spectrum(data, n_batch=5000, ncpu_max=10):
     units of erg/s/A
     """
     
-    
     N_pop2 = np.sum(data["pop2", "particle_ones"])
 
     if N_pop2 < 1:
-        return None
+        return np.zeros_like(wavelength_space())
     
     spec_interp_p2, metals_p2, ages_p2 = generate_pop_II_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv)
 
