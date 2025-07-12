@@ -10,6 +10,9 @@ from yt_derived_fields.cosmology import conformal_time as ct
 def create_star_derived_fields(ds):
     
     _initialize_star_age(ds)
+    
+    _initialize_pop2_star_filter(ds)
+    
     _initialize_pop3_star_filter(ds)
     _initialize_pop3_aliveStatus(ds)
 
@@ -61,6 +64,27 @@ def _initialize_star_age(ds):
                 units="Myr",
                 sampling_type="particle",
                 display_name="Star age",)
+    
+def _initialize_pop2_star_filter(ds):
+    """
+    Initialize the Pop. II star filter.
+    This filter is True if the star is a Pop. II star, False otherwise.
+    """
+    
+    def _pop2_star_filter(filter, data):
+        # Metallicity criteria for Pop. II stars in MEGATRON
+        met_O = data[filter.filtered_type, "particle_metallicity_002"]
+        met_Fe = data[filter.filtered_type, "particle_metallicity_001"]
+
+        return (met_O * 2.09 + 1.06 * met_Fe) >= 2e-8
+
+    yt.add_particle_filter("pop2",
+                          function=_pop2_star_filter,
+                          requires=["particle_metallicity_002",
+                                    "particle_metallicity_001"],
+                          filtered_type="star")
+    
+    ds.add_particle_filter("pop2")
     
 def _initialize_pop3_star_filter(ds):
     
