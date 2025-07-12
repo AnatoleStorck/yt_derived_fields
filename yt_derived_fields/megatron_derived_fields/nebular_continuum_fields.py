@@ -38,14 +38,19 @@ def recomb_ion_H(T):
     alphab = 1.269e-13 * (lam_HI**1.503) / (1. + (lam_HI/0.522)**0.47)**1.923 #cm^3 s^-1
     return alphab
 
-def get_nebular_continuum(ds, downsample=False, ds_nwv=5, lmin=1150, lmax=10000, n_batch=10000, ncpu_max=10):
-    
-    wavelength_space = np.arange(lmin,lmax+0.1)
+def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5, n_batch=10000, ncpu_max=10):
+
+    def wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv):
+        wvls = np.arange(lmin,lmax+0.1)
+        if downsample:
+            wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
+        return wvls
 
     def two_photon(wavelengths):
         nebc = pn.Continuum()
-        two_photon_generic = nebc.two_photon(1e4, 1, wavelength_space)
-        two_phot_erg_s = np.trapezoid(two_photon_generic, wavelength_space)
+        wvls = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
+        two_photon_generic = nebc.two_photon(1e4, 1, wvls)
+        two_phot_erg_s = np.trapezoid(two_photon_generic, wvls)
         return two_photon_generic, two_phot_erg_s
 
     def generate_pyneb_nebc_interp(downsample, ds_nwv):
@@ -68,13 +73,8 @@ def get_nebular_continuum(ds, downsample=False, ds_nwv=5, lmin=1150, lmax=10000,
 
         # downsample?
         if downsample:
-            
-            # Set up the wavelength grid
-            lmin = 1150
-            lmax = 10000
-            wvls = np.arange(lmin,lmax+0.1)
 
-            wvls_ds = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
+            wvls_ds = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
 
             # Initialize the downsampled grid
             dat_ds = np.zeros((dat.shape[0],dat.shape[1],dat.shape[2],dat.shape[3],len(wvls_ds)))
