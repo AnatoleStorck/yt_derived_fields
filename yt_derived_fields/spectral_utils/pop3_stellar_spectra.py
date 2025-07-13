@@ -45,7 +45,7 @@ def generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds
 
     return popIII_interp
 
-def get_pop_3_spectrum(data):
+def get_pop_3_spectrum(data, combined=True):
     """
     Calculates the Population 3 spectrum
     units of erg/s/A
@@ -65,6 +65,8 @@ def get_pop_3_spectrum(data):
     
     spec_interp_p3 = generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv)
 
-    p3_spec = spec_interp_p3(active_popIII_masses).sum(axis=0)
+    p3_spec = spec_interp_p3(active_popIII_masses)
+    if combined:
+        p3_spec = p3_spec.sum(axis=0)
 
     return p3_spec

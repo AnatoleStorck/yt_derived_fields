@@ -11,7 +11,6 @@
 # Author: Anatole Storck
 
 from yt import units as u
-from yt.fields.field_detector import FieldDetector
 
 import tqdm
 import numpy as np
@@ -50,7 +49,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
         nebc = pn.Continuum()
         wvls = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
         two_photon_generic = nebc.two_photon(1e4, 1, wvls)
-        two_phot_erg_s = np.trapezoid(two_photon_generic, wvls)
+        two_phot_erg_s = np.trapz(two_photon_generic, wvls)
         return two_photon_generic, two_phot_erg_s
 
     def generate_pyneb_nebc_interp(downsample, ds_nwv):
@@ -60,7 +59,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
         note that this only considers recombination
         """
         # Load in the precomputed tables
-        dat = np.load(f"/mnt/glacier/DATA/pyneb_nebc_tables/neb_continuum.npy")
+        dat = np.load("/data100/cadiou/Megatron/DATA/pyneb_nebc_tables/neb_continuum.npy")
 
         # Set up the parameters
         temp = 10.**np.arange(3.5,4.477,0.02)
@@ -100,26 +99,23 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
             Calculates the nebular continuum for each cell (note that we ignore cells with unresolved stromgren spheres)
             """
             
-            nH = data["gas", "hydrogen_number_density"].to("cm**-3").value
-            nHe = data["gas", "helium_number_density"].to("cm**-3").value
-
-            if isinstance(data, FieldDetector):
-                return np.zeros(nH.shape)
+            nH = data["gas", "hydrogen_number_density"].to("cm**-3").value.flatten()
+            nHe = data["gas", "helium_number_density"].to("cm**-3").value.flatten()
 
             # Get a list of cell volumes
-            cell_volumes = data["gas", "volume"].to("cm**3").value
+            cell_volumes = data["gas", "volume"].to("cm**3").value.flatten()
 
             # Get the electron number density
-            electron_density = data["gas", "electron_number_density"].to("cm**-3").value
+            electron_density = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
 
             # Get the ionized hydrogen density
-            HI_density = nH * data["gas", "hydrogen_01"]
-            HII_density = nH * data["gas", "hydrogen_02"]
-            HeII_density = nHe * data["gas", "helium_02"]
-            HeIII_density = nHe * data["gas", "helium_03"]
+            HI_density = nH * data["gas", "hydrogen_01"].flatten()
+            HII_density = nH * data["gas", "hydrogen_02"].flatten()
+            HeII_density = nHe * data["gas", "helium_02"].flatten()
+            HeIII_density = nHe * data["gas", "helium_03"].flatten()
 
             # Downweight temperatures that are too high
-            temperatures = data["gas", "temperature"].to("K").value
+            temperatures = data["gas", "temperature"].to("K").value.flatten()
             T_rescale = np.ones(len(temperatures))
             T_filt =  temperatures > 10.**4.46
             # Note that the Ha emissivity decreases nearly linearly with temperature emis~T^-0.94
@@ -174,7 +170,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
 
             # Get the results in parallel
             print(f"Interpolating nebular continuum for {len(nH)} cells")
-            with tqdm(total=len(all_c1)) as progress_bar:
+            with tqdm.tqdm(total=len(all_c1)) as progress_bar:
                 def update_progress(*args):
                     progress_bar.update()
 
@@ -185,14 +181,14 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
                                 cell_volumes[all_c1[i]:all_c2[i]],
                                 electron_density[all_c1[i]:all_c2[i]],
                                 HII_density[all_c1[i]:all_c2[i]],
-                                T_rescale[all_c1[i]:all_c2[i]],i
+                                T_rescale[all_c1[i]:all_c2[i]],
                             ) for i in range(len(all_c1)) if not update_progress() )
 
 
             # NOTE: THIS COMBINES ALL THE CELLS TOGETHER
             #nebc_spec = np.array(results).sum(axis=0)
             
-            nebc_spec = np.array(results)
+            nebc_spec = np.array(results) * u.erg / u.s
 
             return nebc_spec
         
@@ -206,18 +202,15 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
         
         def _get_nebc_resolved_two_photon(field, data):
         
-            nH = data["gas", "hydrogen_number_density"].to("cm**-3").value
-            temperatures = data["gas", "temperature"].to("K").value
-            
-            if isinstance(data, FieldDetector):
-                return np.zeros(temperatures.shape)
+            nH = data["gas", "hydrogen_number_density"].to("cm**-3").value.flatten()
+            temperatures = data["gas", "temperature"].to("K").value.flatten()
             
             # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
             CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))
             HI_density_alt = nH * np.minimum(nH, 1.-CIE_HII)
             
-            cell_volumes = data["gas", "volume"].to("cm**3").value
-            electron_density = data["gas", "electron_number_density"].to("cm**-3").value
+            cell_volumes = data["gas", "volume"].to("cm**3").value.flatten()
+            electron_density = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
             
             # Note that the previous code only considered recombination
             # Here we now calculate the collisional contribution to the two-photon emission
@@ -246,7 +239,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
             two_phot_rescale = cool_two_phot.sum() / two_phot_erg_s
 
             # Return both the recombination spectrum and the two-photon cooling spectrum
-            return two_phot_rescale*two_photon_generic
+            return two_phot_rescale*two_photon_generic * u.erg / u.s
 
         ds.add_field(name=("gas", "nebc_resolved_two_photon"),
                     function=_get_nebc_resolved_two_photon,

@@ -11,7 +11,6 @@
 # Author: Anatole Storck
 
 from yt import units as u
-from yt.fields.field_detector import FieldDetector
 
 from pathlib import Path
 import numpy as np
@@ -68,20 +67,16 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     
         def _get_coll_line_lum(field, data):
             
-            nCells = len(data["gas", "density"].to("g/cm**3"))
-            rho = data["gas", "density"].to("g/cm**3").value
-            
-            if isinstance(data, FieldDetector):
-                return np.zeros(rho.shape)
-
+            nCells = len(data["gas", "density"].to("g/cm**3").value.flatten())
+            rho = data["gas", "density"].to("g/cm**3").value.flatten()
             
             # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
-            Tgas = np.log10(data["gas", "temperature"].to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
             # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K"))
-            
-            ne = data["gas", "electron_number_density"].to("cm**-3").value
-            cell_vol = data["gas", "volume"].to("cm**3").value
-            
+
+            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
+            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
+
             # Set up the arrays to interpolate
             to_interp = np.zeros((nCells, 2))
             to_interp[:,0] = Tgas
@@ -92,8 +87,8 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             el  = coll_line_dict[line]["ion"].split("_")[0]           # C,    O,      Fe
             ion_roman = coll_line_dict[line]["ion"].split("_")[1]     # II,   III,    VII       
             
-            nel = rho * data["gas", f"{met_data[el]['name']}_fraction"] / met_data[el]["mass"].to("g").value
-            xion = data["gas", f"{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"]
+            nel = rho * data["gas", f"{met_data[el]['name']}_fraction"].flatten() / met_data[el]["mass"].to("g").value
+            xion = data["gas", f"{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
             
             # get emisitivity of cells based on T and ne
             loc_emis = coll_line_dict[line]["emis_grid"](to_interp)
@@ -116,18 +111,15 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
         
         def _get_rec_line_lum(field, data):
 
-            nCells = len(data["gas", "density"].to("g/cm**3"))
-            rho = data["gas", "density"].to("g/cm**3").value
-            
-            if isinstance(data, FieldDetector):
-                return np.zeros(rho.shape)
+            nCells = len(data["gas", "density"].to("g/cm**3").value.flatten())
+            rho = data["gas", "density"].to("g/cm**3").value.flatten()
             
             # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
-            Tgas = np.log10(data["gas", "temperature"].to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
             # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K"))
 
-            ne = data["gas", "electron_number_density"].to("cm**-3").value
-            cell_vol = data["gas", "volume"].to("cm**3").value
+            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
+            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
             
             # Set up the arrays to interpolate
             to_interp = np.zeros((nCells, 2))
@@ -148,10 +140,10 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             # NOTE: only works because rec roman numerals go up to III
             ion_col_roman = ion_roman[:-1]
             
-            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value
+            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value.flatten()
             
-            xion = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_roman]:02d}"]
-            xion_col = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_col_roman]:02d}"]
+            xion = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
+            xion_col = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_col_roman]:02d}"].flatten()
             
             loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
             loc_rec_emis *= ne * nel * xion # NOTE * df_gas[f"{el}_dep"]
