@@ -68,7 +68,7 @@ def generate_pop_II_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds_
     return metal_vals, ages, popII_interp
 
 
-def get_pop_2_spectrum(data, n_batch=5000, ncpu_max=10):
+def get_pop_2_spectrum(data, combined=True, n_batch=5000, ncpu_max=10):
     """
     Calculates the Population 2 spectrum
     units of erg/s/A
@@ -122,8 +122,9 @@ def get_pop_2_spectrum(data, n_batch=5000, ncpu_max=10):
                           initial_masses[all_c1[i]:all_c2[i]]
                       ) for i in range(len(all_c1)) if not update_progress() )
 
-
-    # Convert to a numpy array
-    p2_spec = np.array(results).sum(axis=0)
+    p2_spec = np.array(results)
+    if combined:
+        # Convert to a numpy array
+        p2_spec = p2_spec.sum(axis=0)
 
     return p2_spec
