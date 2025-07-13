@@ -46,7 +46,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
             wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
         return wvls
 
-    def two_photon(wavelengths):
+    def _two_photon():
         nebc = pn.Continuum()
         wvls = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
         two_photon_generic = nebc.two_photon(1e4, 1, wvls)
@@ -241,7 +241,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5,
             phi_two_phot = prefac * planck * nu_Lya * Gamma_x * np.exp(-T12/temperatures) # erg * cm / s  
             cool_two_phot = phi_two_phot * HI_density_alt * electron_density * cell_volumes # Total two photon cooling in erg/s
 
-            two_phot_erg_s, two_photon_generic = two_photon(wavelength_space)
+            two_phot_erg_s, two_photon_generic = _two_photon()
             
             two_phot_rescale = cool_two_phot.sum() / two_phot_erg_s
 

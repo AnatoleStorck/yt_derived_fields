@@ -41,7 +41,7 @@ roman_numerals = {
 
 _spectral_data = f"{Path(__file__).parent.parent}/spectral_utils"
 
-def get_emission_lines(ds, coll_lines=None, rec_lines=None):
+def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
     Add emission line luminosity fields to the dataset.
 
@@ -58,9 +58,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
     
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
-    if coll_lines is not None:
+    if coll_lines is not None or all_lines:
         coll_line_dict = np.load(f"{_spectral_data}/coll_line_dict.npy", allow_pickle=True).item()
-    if rec_lines is not None:
+    if rec_lines is not None or all_lines:
         rec_line_dict = np.load(f"{_spectral_data}/rec_line_dict.npy", allow_pickle=True).item()
     
     # line in the form of, for example, "O3-5007"
@@ -169,9 +169,13 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None):
                     units="erg/s",
                     sampling_type="cell",
                     display_name=f"{line} Luminosity",)
-        
-    for line in coll_lines:
-        coll_line(ds, line)
-    for line in rec_lines:
-        rec_line(ds, line)
+    
+    if all_lines:
+        [coll_line(ds, line) for line in coll_line_dict.keys()]
+        [rec_line(ds, line) for line in rec_line_dict.keys()]
+    else:
+        for line in coll_lines:
+            coll_line(ds, line)
+        for line in rec_lines:
+            rec_line(ds, line)
         
