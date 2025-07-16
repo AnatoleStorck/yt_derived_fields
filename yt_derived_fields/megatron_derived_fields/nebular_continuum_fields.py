@@ -38,7 +38,7 @@ def recomb_ion_H(T):
     alphab = 1.269e-13 * (lam_HI**1.503) / (1. + (lam_HI/0.522)**0.47)**1.923 #cm^3 s^-1
     return alphab
 
-def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=False, ds_nwv=5, n_batch=1000, ncpu_max=12):
+def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, n_batch=1000, ncpu_max=12):
 
     def wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv):
         wvls = np.arange(lmin,lmax+0.1)
