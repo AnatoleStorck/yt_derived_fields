@@ -5,19 +5,17 @@ import pandas as pd
 
 from scipy.interpolate import RegularGridInterpolator
 
+import unyt as u
 import yt_derived_fields.megatron_derived_fields.stars_derived_fields as stars_derived_fields
 
-lmin=1150, lmax=10000, downsample=False, ds_nwv=5
-
-
-def wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv):
+def wavelength_space(lmin, lmax, downsample, ds_nwv):
     wvls = np.arange(lmin,lmax+0.1)
     if downsample:
         wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
     return wvls
 
 # Larkin et al. (2023) spectra (interpolated over mass)
-def generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv):
+def generate_pop_III_spec_interp(lmin, lmax, downsample, ds_nwv):
     """
     Function that loads and returns an interpolating function for the pop III spectra
     Units are erg/s/A
@@ -30,7 +28,7 @@ def generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds
     popIII_interp = RegularGridInterpolator((np.array(props["Mass_Msol"]),),dat)
 
     if downsample:
-        wvls_ds = wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv)
+        wvls_ds = wavelength_space(lmin, lmax, downsample, ds_nwv)
 
         # Initialize the downsampled grid
         dat_ds = np.zeros((len(dat),len(wvls_ds)))
@@ -45,7 +43,7 @@ def generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds
 
     return popIII_interp
 
-def get_pop_3_spectrum(data, combined=True):
+def get_pop_3_spectrum(data, combined=True, lmin=1150, lmax=10000, downsample=True, ds_nwv=5):
     """
     Calculates the Population 3 spectrum
     units of erg/s/A
@@ -54,19 +52,19 @@ def get_pop_3_spectrum(data, combined=True):
     pop3_alive_status = data["pop3", "isAlive"]
 
     if not np.any(pop3_alive_status):
-        return np.zeros_like(wavelength_space())
+        return np.zeros_like(wavelength_space(lmin, lmax, downsample, ds_nwv))
 
     # Get a list of active Pop III masses
-    active_popIII_masses = data["pop3", "initial_mass"][pop3_alive_status].to("Msun").value
+    active_popIII_masses = data["pop3", "particle_initial_mass"][pop3_alive_status].to("Msun").value
 
     # Enforce bounds
     active_popIII_masses[active_popIII_masses < 1.0] = 1.0
     active_popIII_masses[active_popIII_masses > 820.2] = 820.2
-    
-    spec_interp_p3 = generate_pop_III_spec_interp(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv)
+
+    spec_interp_p3 = generate_pop_III_spec_interp(lmin, lmax, downsample, ds_nwv)
 
     p3_spec = spec_interp_p3(active_popIII_masses)
     if combined:
         p3_spec = p3_spec.sum(axis=0)
 
-    return p3_spec
+    return p3_spec * u.erg / u.s
