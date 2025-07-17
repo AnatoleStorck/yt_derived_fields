@@ -65,9 +65,11 @@ The functionality is ever-expanding, here are a few examples of what is currentl
    import yt
    import pandas as pd
 
-   import yt_derived_fields.megatron_derived_fields.chemistry_derived_fields as chem_fields
-   import yt_derived_fields.megatron_derived_fields.cooling_derived_fields as cool_fields
-   import yt_derived_fields.megatron_derived_fields.stars_derived_fields as star_fields
+   from yt_derived_fields.megatron_derived_fields import (
+      chemistry_derived_fields as chem_fields,
+      cooling_derived_fields as cool_fields,
+      stars_derived_fields as star_fields,
+   )
 
    ds = yt.load(<path_to_your_favorite_megatron_output>)
    hc = pd.read_csv(<path_to_your_halo_catalog_in_pandas_format>)
@@ -122,8 +124,10 @@ The functionality is ever-expanding, here are a few examples of what is currentl
    import yt
    import pandas as pd
 
-   import yt_derived_fields.megatron_derived_fields.nebular_continuum_fields as neb_fields
-   import yt_derived_fields.megatron_derived_fields.stellar_continuum_fields as stellar_spec_fields
+   from yt_derived_fields.megatron_derived_fields import (
+      nebular_continuum_fields as neb_fields,
+      stellar_continuum_fields as stellar_spec_fields,
+   )
 
    ds = yt.load(<path_to_your_favorite_megatron_output>)
    hc = pd.read_csv(<path_to_your_halo_catalog_in_pandas_format>)
