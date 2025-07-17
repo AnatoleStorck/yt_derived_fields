@@ -13,7 +13,8 @@
 import os
 
 # Set the XUVTOP environment variable to the location of the CHIANTI database
-os.environ["XUVTOP"] = "/home/astorck/databases/"
+os.environ["XUVTOP"] = "/mnt/glacier/chianti/"
+print("setting environment variable XUVTOP to", os.environ["XUVTOP"])
 import ChiantiPy.core as ch
 
 import numpy as np

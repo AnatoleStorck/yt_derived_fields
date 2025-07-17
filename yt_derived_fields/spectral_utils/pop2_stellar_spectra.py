@@ -122,32 +122,14 @@ def get_pop_2_spectrum(
     # Get a list of initial masses
     initial_masses = data["pop2", "particle_initial_mass"].to("Msun").value
 
-    def parallel_interp(spec_interp_p2, to_interp, initial_masses):
-        return (spec_interp_p2(to_interp) * initial_masses[:, None]).sum(axis=0)
-
     # Chunk the data for efficient parallelization
     all_c1 = [i * n_batch for i in range(1 + len(to_interp) // n_batch)]
     all_c2 = [c1 + n_batch for c1 in all_c1]
     all_c2[-1] = len(to_interp)
 
     # Calculate the number of CPUs to use
-    n_cpus = min(
-        len(all_c1), ncpu_max
-    )  # Set the maximum number of CPUs to ncpu_max (but no more than the number of batches)
-
-    # # Get the results in parallel
-    # print(f"Interpolating stellar continuum for {len(to_interp)} stars")
-    # with tqdm.tqdm(total=len(all_c1)) as progress_bar:
-    #     def update_progress(*args):
-    #         progress_bar.update()
-
-    #     results = Parallel(n_jobs=n_cpus)(
-    #                   delayed(parallel_interp)(
-    #                       spec_interp_p2,
-    #                       to_interp[all_c1[i]:all_c2[i],:],
-    #                       initial_masses[all_c1[i]:all_c2[i]]
-    #                   ) for i in range(len(all_c1)) if not update_progress() )
-
+    n_cpus = min(len(all_c1), ncpu_max) # Set the maximum number of CPUs to ncpu_max (but no more than the number of batches)
+        
     test_shape = spec_interp_p2(to_interp[:1]).shape[-1]
     results = np.zeros((N_pop2, test_shape))  # shape: (N_cells, N_wavelengths)
 
