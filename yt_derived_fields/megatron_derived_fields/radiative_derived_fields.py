@@ -30,9 +30,7 @@ def create_rt_derived_fields(ds, bands="all"):
                                EUV2, EUV3, EUV4. Defaults to "all".
     """
 
-    _fl = (
-        ds.field_list
-    )  # NOTE: Need to run this somehow to ensure the fields are registered and read the parameters correctly
+    _fl = ds.field_list  # NOTE: Need to run this somehow to ensure the fields are registered and read the parameters correctly
 
     if bands == "all":
         for band in energy_bands.keys():
@@ -43,11 +41,16 @@ def create_rt_derived_fields(ds, bands="all"):
 
 def _initialize_radiation_energy_density(ds, band: str):
     rt_params = yt.frontends.ramses.fields.RTFieldFileHandler.get_rt_parameters(ds)
-    energy_conversions = {band: rt_params[f"Group {i} egy      [eV]"][0] for band, i in energy_bands.items()}
+    energy_conversions = {
+        band: rt_params[f"Group {i} egy      [eV]"][0]
+        for band, i in energy_bands.items()
+    }
 
     def _radiation_energy_density(field, data):
         photon_field = data["ramses-rt", f"Photon_density_{energy_bands[band]}"]
-        photon_density_field = photon_field * rt_params["unit_pf"] * ev_to_erg * energy_conversions[band]
+        photon_density_field = (
+            photon_field * rt_params["unit_pf"] * ev_to_erg * energy_conversions[band]
+        )
 
         return photon_density_field * u.erg / u.s / u.cm**2
 

@@ -31,21 +31,31 @@ planck = 6.626070040e-27  # [erg s] Planck's constant
 
 # Collisional ionization rate H I
 def coll_ion_H(T):
-    return 5.85e-11 * np.sqrt(T) * ((1.0 + np.sqrt(T / 1e5)) ** -1) * np.exp(-157809.1 / T)
+    return (
+        5.85e-11 * np.sqrt(T) * ((1.0 + np.sqrt(T / 1e5)) ** -1) * np.exp(-157809.1 / T)
+    )
 
 
 # Recombination rate H II
 def recomb_ion_H(T):
     lam_HI = 315614.0 / T
-    alphab = 1.269e-13 * (lam_HI**1.503) / (1.0 + (lam_HI / 0.522) ** 0.47) ** 1.923  # cm^3 s^-1
+    alphab = (
+        1.269e-13 * (lam_HI**1.503) / (1.0 + (lam_HI / 0.522) ** 0.47) ** 1.923
+    )  # cm^3 s^-1
     return alphab
 
 
-def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, n_batch=1000, ncpu_max=12):
+def get_nebular_continuum(
+    ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, n_batch=1000, ncpu_max=12
+):
     def wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv):
         wvls = np.arange(lmin, lmax + 0.1)
         if downsample:
-            wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
+            wvls = (
+                pd.Series(wvls)
+                .rolling(window=ds_nwv, min_periods=1, center=True)
+                .mean()[::ds_nwv]
+            )
         return wvls
 
     def generate_pyneb_nebc_interp(downsample, ds_nwv):
@@ -71,7 +81,9 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             wvls_ds = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
 
             # Initialize the downsampled grid
-            dat_ds = np.zeros((dat.shape[0], dat.shape[1], dat.shape[2], dat.shape[3], len(wvls_ds)))
+            dat_ds = np.zeros(
+                (dat.shape[0], dat.shape[1], dat.shape[2], dat.shape[3], len(wvls_ds))
+            )
 
             for ii in range(len(temp)):
                 for jj in range(len(den)):
@@ -84,7 +96,9 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
                             )
 
             # Create the interpolatin function
-            nebc_interp_ds = RegularGridInterpolator((temp, den, HeI_frac, HeII_frac), dat_ds)
+            nebc_interp_ds = RegularGridInterpolator(
+                (temp, den, HeI_frac, HeII_frac), dat_ds
+            )
 
             return nebc_interp_ds
 
@@ -123,7 +137,15 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             if isinstance(data, FieldDetector):
                 return np.zeros(nH.shape) * u.erg / u.s
 
-            print("Note: the nebular continuum is not a single-value field, but a spectrum for each cell.")
+            print(
+                "Note: the nebular continuum is not a single-value field, but a spectrum for each cell."
+            )
+
+            # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
+            CIE_HII = coll_ion_H(temperatures) / (
+                coll_ion_H(temperatures) + recomb_ion_H(temperatures)
+            )
+            HI_density_alt = nH * np.minimum(nH, 1.0 - CIE_HII)
 
             # Get data for interpolation
             to_interpolate = np.zeros((len(nH), 4))
@@ -164,7 +186,10 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             ):
                 return (
                     (
-                        ((nebc_interp(to_interpolate) * cell_volumes[:, None]) * electron_density[:, None])
+                        (
+                            (nebc_interp(to_interpolate) * cell_volumes[:, None])
+                            * electron_density[:, None]
+                        )
                         * HII_density[:, None]
                     )
                     * T_rescale[:, None]
@@ -233,13 +258,17 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             two_phot_erg_s = np.trapz(two_photon_generic, wvls)
 
             # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
-            CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))
+            CIE_HII = coll_ion_H(temperatures) / (
+                coll_ion_H(temperatures) + recomb_ion_H(temperatures)
+            )
             HI_density_alt = nH * np.minimum(nH, 1.0 - CIE_HII)
 
             if isinstance(data, FieldDetector):
                 return np.zeros(nH.shape) * u.erg / u.s
 
-            print("Note: the two-photon continuum is not a single-value field, but a spectrum for each cell.")
+            print(
+                "Note: the two-photon continuum is not a single-value field, but a spectrum for each cell."
+            )
 
             # Note that the previous code only considered recombination
             # Here we now calculate the collisional contribution to the two-photon emission
@@ -260,7 +289,9 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             T12 = planck * nu_Lya / kb
 
             prefac = (8.63e-6) / (omega_1 * np.sqrt(temperatures))
-            phi_two_phot = prefac * planck * nu_Lya * Gamma_x * np.exp(-T12 / temperatures)  # erg * cm / s
+            phi_two_phot = (
+                prefac * planck * nu_Lya * Gamma_x * np.exp(-T12 / temperatures)
+            )  # erg * cm / s
             cool_two_phot = (
                 phi_two_phot * HI_density_alt * electron_density * cell_volumes
             )  # Total two photon cooling in erg/s
@@ -268,7 +299,12 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             two_phot_rescale = cool_two_phot / two_phot_erg_s
 
             # Return both the recombination spectrum and the two-photon cooling spectrum
-            return np.array(two_phot_rescale)[:, None] * np.array(two_photon_generic) * u.erg / u.s
+            return (
+                np.array(two_phot_rescale)[:, None]
+                * np.array(two_photon_generic)
+                * u.erg
+                / u.s
+            )
 
         ds.add_field(
             name=("gas", "nebc_resolved_two_photon"),

@@ -38,8 +38,8 @@ element_weights = {
     "S": 32.06,
     "Si": 28.0855,
 }
-for key in element_weights:
-    element_weights[key] = element_weights[key] / avogad
+for el in element_weights:
+    element_weights[el] = element_weights[el] / avogad
 
 
 # Set everything to chianti for pyneb
@@ -339,19 +339,21 @@ coll_line_dict = {
 }
 
 # Initialize the emissivity grids (emission at each temperature and electron density)
-for line in coll_line_dict.keys():
-    print(f"initializing {line}")
-    atom = coll_line_dict[line]["atom"]
-    lev_u = coll_line_dict[line]["lev_u"]
-    lev_d = coll_line_dict[line]["lev_d"]
-    em_grid = atom.getEmissivity(tem=temperatures, den=e_densities, lev_i=lev_u, lev_j=lev_d, product=True)
+for col_line in coll_line_dict.keys():
+    print(f"initializing {col_line}")
+    atom = coll_line_dict[col_line]["atom"]
+    lev_u = coll_line_dict[col_line]["lev_u"]
+    lev_d = coll_line_dict[col_line]["lev_d"]
+    em_grid = atom.getEmissivity(
+        tem=temperatures, den=e_densities, lev_i=lev_u, lev_j=lev_d, product=True
+    )
     interp = RegularGridInterpolator(
         (np.log10(temperatures), np.log10(e_densities)),
         em_grid,
         bounds_error=False,
         fill_value=0.0,
     )
-    coll_line_dict[line]["emis_grid"] = interp
+    coll_line_dict[col_line]["emis_grid"] = interp
 
 
 """
@@ -412,13 +414,15 @@ rec_line_dict = {
 }
 
 # Initialize the emissivity grids (emission at each temperature and electron density)
-for key in rec_line_dict:
-    print(f"initializing {key}")
-    lev_u = rec_line_dict[key]["lev_u"]
-    lev_d = rec_line_dict[key]["lev_d"]
+for rec_line in rec_line_dict:
+    print(f"initializing {rec_line}")
+    lev_u = rec_line_dict[rec_line]["lev_u"]
+    lev_d = rec_line_dict[rec_line]["lev_d"]
     em_grid = np.zeros((len(temperatures), len(e_densities)))
     for i, ne in enumerate(e_densities):
-        em = rec_line_dict[key]["atom"].getEmissivity(temperatures, ne, lev_i=lev_u, lev_j=lev_d)
+        em = rec_line_dict[rec_line]["atom"].getEmissivity(
+            temperatures, ne, lev_i=lev_u, lev_j=lev_d
+        )
         filt_loc = np.isnan(em)
         mf = interp1d(
             np.log10(temperatures[~filt_loc]),
@@ -434,7 +438,7 @@ for key in rec_line_dict:
         bounds_error=False,
         fill_value=0.0,
     )
-    rec_line_dict[key]["emis_grid"] = interp
+    rec_line_dict[rec_line]["emis_grid"] = interp
 
 """
 # Get the collisional emissivities for the hydrogen and helium lines
@@ -454,26 +458,30 @@ he2_ion = ch.ion("he_2", temps_chianti, dens_chianti)
 he2_ion.emiss()
 he2_res_dict = he2_ion.Emiss
 
-for key in rec_line_dict:
-    lev_u = rec_line_dict[key]["lev_u"]
-    lev_d = rec_line_dict[key]["lev_d"]
+for rec_line in rec_line_dict:
+    lev_u = rec_line_dict[rec_line]["lev_u"]
+    lev_d = rec_line_dict[rec_line]["lev_d"]
 
-    if rec_line_dict[key]["ion"][:-1] == "H_I":
+    if rec_line_dict[rec_line]["ion"][:-1] == "H_I":
         rd = h1_res_dict
-    elif rec_line_dict[key]["ion"][:-1] == "He_II":
+    elif rec_line_dict[rec_line]["ion"][:-1] == "He_II":
         rd = he2_res_dict
     else:
-        print(f"Coll ion {rec_line_dict[key]['ion']} unavailable")
+        print(f"Coll ion {rec_line_dict[rec_line]['ion']} unavailable")
         continue
 
     col_emissivity = np.zeros(len(temps_chianti))
 
     for i in range(len(rd["pretty2"])):
-        if (str(rd["pretty2"][i][0]) == str(lev_u)) and str(rd["pretty1"][i][0]) == str(lev_d):
-            col_emissivity += np.array(rd["emiss"][i]) * 4.0 * np.pi  # Note: Chianti emissivities are per steradian
+        if (str(rd["pretty2"][i][0]) == str(lev_u)) & (
+            str(rd["pretty1"][i][0]) == str(lev_d)
+        ):
+            col_emissivity += (
+                np.array(rd["emiss"][i]) * 4.0 * np.pi
+            )  # Note: Chianti emissivities are per steradian
 
     interp = interp1d(temps_chianti, col_emissivity)
-    rec_line_dict[key]["emis_grid_col"] = interp
+    rec_line_dict[rec_line]["emis_grid_col"] = interp
 
 
 # Save the emissivity dictionaries to a file

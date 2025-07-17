@@ -47,7 +47,12 @@ def _initialize_star_age(ds):
         star_birth_time_proper = data["star", "conformal_birth_time"]
 
         # Convert from proper time to time
-        star_birth_time = cosmology.ct_proptime2time(tau=star_birth_time_proper, h0=ds.hubble_constant * 100) * u.yr
+        star_birth_time = (
+            cosmology.ct_proptime2time(
+                tau=star_birth_time_proper, h0=ds.hubble_constant * 100
+            )
+            * u.yr
+        )
 
         # To get the age, subtract the birth time from the current time
         star_age = (stimeYr - star_birth_time).to("Myr")
@@ -70,7 +75,7 @@ def _initialize_pop2_star_filter(ds):
     This filter is True if the star is a Pop. II star, False otherwise.
     """
 
-    def _pop2_star_filter(pfilter, data):
+    def _pop2_star_filter(filter, data):
         # Metallicity criteria for Pop. II stars in MEGATRON
         met_O = data[pfilter.filtered_type, "particle_metallicity_002"]
         met_Fe = data[pfilter.filtered_type, "particle_metallicity_001"]
@@ -88,7 +93,7 @@ def _initialize_pop2_star_filter(ds):
 
 
 def _initialize_pop3_star_filter(ds):
-    def _pop3_star_filter(pfilter, data):
+    def _pop3_star_filter(filter, data):
         # Metallicity criteria for Pop. III stars in MEGATRON
         met_O = data[pfilter.filtered_type, "particle_metallicity_002"]
         met_Fe = data[pfilter.filtered_type, "particle_metallicity_001"]

@@ -16,10 +16,10 @@ def get_Npart(ds):
     directory = ds.directory
     header = glob.glob(directory + "/header_*")[0]
 
-    ptypes = np.loadtxt(open(header).readlines()[1:-2], dtype=str, usecols=0)
-    Npart = np.loadtxt(open(header).readlines()[1:-2], dtype=int, usecols=1)
+    ptypes = np.loadtxt(open(header, "rt").readlines()[1:-2], dtype=str, usecols=0)
+    Npart = np.loadtxt(open(header, "rt").readlines()[1:-2], dtype=int, usecols=1)
 
-    for N, ptype in zip(Npart, ptypes, strict=False):
+    for N, ptype in zip(Npart, ptypes):
         if ptype == "gas_tracer":
             N_gas_tracer = N
         if ptype == "DM":
@@ -28,7 +28,9 @@ def get_Npart(ds):
     return N_gas_tracer, N_dm
 
 
-@yt.particle_filter(requires=["particle_family", "particle_mass"], filtered_type="gas_tracer")
+@yt.particle_filter(
+    requires=["particle_family", "particle_mass"], filtered_type="gas_tracer"
+)
 def gas_tracer_noNaN(field, data):
     """
     Filter to select gas tracers that have a valid cell index.
@@ -58,7 +60,9 @@ def particle_position_redefine_for_gas_tracers(field, data):
 
     if gas_tracer_filter.sum() > 0:
         tracer_cell_index = data["gas_tracer_noNaN", "cell_index"]
-        tracer_cell_dx = np.cbrt(data["gas_tracer_noNaN", "cell_gas_volume"]).to("Mpccm/h")
+        tracer_cell_dx = np.cbrt(data["gas_tracer_noNaN", "cell_gas_volume"]).to(
+            "Mpccm/h"
+        )
 
         tracer_pos = io_pos[gas_tracer_filter]
 
@@ -134,9 +138,13 @@ def particle_velocity_redefine_for_gas_tracers(field, data):
         tracer_cell_vel_y = data["gas_tracer_noNaN", "cell_gas_velocity_y"].to("km/s")
         tracer_cell_vel_z = data["gas_tracer_noNaN", "cell_gas_velocity_z"].to("km/s")
 
-        new_tracer_vel = np.column_stack([tracer_cell_vel_x, tracer_cell_vel_y, tracer_cell_vel_z])
+        new_tracer_vel = np.column_stack(
+            [tracer_cell_vel_x, tracer_cell_vel_y, tracer_cell_vel_z]
+        )
 
-        perturbation = np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-3 * u.km / u.s
+        perturbation = (
+            np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-3 * u.km / u.s
+        )
 
         new_tracer_vel[:, 0] += perturbation[:, 0]
         new_tracer_vel[:, 1] += perturbation[:, 1]
@@ -191,7 +199,7 @@ def particle_identity_rescaled(field, data):
 def dm_star_gastracer_union(pfilter, data):
     dm_filter = data[pfilter.filtered_type, "particle_family"] == 1
 
-    mask = dm_filter
+    filter = dm_filter
 
     # # Need to check there are DM particles to take the minimum mass from
     # p_mass = data[pfilter.filtered_type, 'particle_mass']
@@ -202,16 +210,16 @@ def dm_star_gastracer_union(pfilter, data):
     #     filter &= high_res_dm_filter
 
     star_filter = data[pfilter.filtered_type, "particle_family"] == 2
-    mask |= star_filter
+    filter |= star_filter
 
     gas_tracer_filter = data[pfilter.filtered_type, "particle_family"] == 0
     gas_tracer_indexes = data["gas_tracer", "cell_index"]
     isnan_cell_index = np.isnan(gas_tracer_indexes)
     gas_tracer_filter[gas_tracer_filter] &= ~isnan_cell_index
 
-    mask |= gas_tracer_filter
+    filter |= gas_tracer_filter
 
-    return mask
+    return filter
 
 
 @yt.particle_filter(requires=["particle_family", "particle_mass"], filtered_type="io")
@@ -220,9 +228,9 @@ def dm_star_union(pfilter, data):
     mask = dm_filter
 
     star_filter = data[pfilter.filtered_type, "particle_family"] == 2
-    mask |= star_filter
+    filter |= star_filter
 
-    return mask
+    return filter
 
 
 def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
@@ -235,8 +243,12 @@ def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
 
         # grab the gas tracer cell data
         ds.add_mesh_sampling_particle_field(("gas", "volume"), ptype="gas_tracer_noNaN")
-        for axis in "xyz":
-            ds.add_mesh_sampling_particle_field(("gas", f"velocity_{axis}"), ptype="gas_tracer_noNaN")
+        [
+            ds.add_mesh_sampling_particle_field(
+                ("gas", f"velocity_{axis}"), ptype="gas_tracer_noNaN"
+            )
+            for axis in ["x", "y", "z"]
+        ]
 
         # Redefine particle positions for gas tracers
         ds.add_field(
@@ -245,21 +257,15 @@ def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
             function=particle_position_redefine_for_gas_tracers,
             units="Mpccm/h",
         )
-        for axis, f in zip(
-            "xyz",
-            (
-                particle_position_redefine_for_gas_tracers_x,
-                particle_position_redefine_for_gas_tracers_y,
-                particle_position_redefine_for_gas_tracers_z,
-            ),
-            strict=False,
-        ):
+        [
             ds.add_field(
-                ("io", f"particle_position_redefine_for_gas_tracers_{axis}"),
+                ("io", "particle_position_redefine_for_gas_tracers_" + axis),
                 sampling_type="particle",
-                function=f,
+                function=eval(f"particle_position_redefine_for_gas_tracers_{axis}"),
                 units="Mpccm/h",
             )
+            for axis in ["x", "y", "z"]
+        ]
 
         # Redefine particle velocities for gas tracers
         ds.add_field(
@@ -268,21 +274,15 @@ def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
             function=particle_velocity_redefine_for_gas_tracers,
             units="km/s",
         )
-        for axis, f in zip(
-            "xyz",
-            (
-                particle_velocity_redefine_for_gas_tracers_x,
-                particle_velocity_redefine_for_gas_tracers_y,
-                particle_velocity_redefine_for_gas_tracers_z,
-            ),
-            strict=False,
-        ):
+        [
             ds.add_field(
-                ("io", f"particle_velocity_redefine_for_gas_tracers_{axis}"),
+                ("io", "particle_velocity_redefine_for_gas_tracers_" + axis),
                 sampling_type="particle",
-                function=f,
+                function=eval(f"particle_velocity_redefine_for_gas_tracers_{axis}"),
                 units="km/s",
             )
+            for axis in ["x", "y", "z"]
+        ]
 
     if use_stars or use_gas_tracers:
         # Rescale particle identities for DM and stars by N_dm and N_gas_tracer
