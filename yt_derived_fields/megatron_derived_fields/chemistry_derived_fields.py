@@ -38,9 +38,7 @@ def _initialize_metal_density(ds, element: str):
         if element == "Fe":  # NOTE: iron_fraction is "Metallicity"
             metal_density = data["gas", "density"] * data["gas", "iron_fraction"]
         else:
-            metal_density = (
-                data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
-            )
+            metal_density = data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
 
         return metal_density
 
@@ -86,11 +84,7 @@ def _initialize_primordial_density(ds, element):
     prim_name = prim_data[element]["name"]
 
     def _primordial_density(field, data):
-        return (
-            data["gas", "density"]
-            * prim_data[element]["massFrac"]
-            * (1 - data["gas", "real_metallicity"])
-        )
+        return data["gas", "density"] * prim_data[element]["massFrac"] * (1 - data["gas", "real_metallicity"])
 
     ds.add_field(
         name=("gas", f"{prim_name}_density"),
@@ -142,9 +136,7 @@ def _initialize_H2(ds):
 
 def _initialize_CO(ds):
     def _CO_density(field, data):
-        return (
-            data["gas", "density"] * data["gas", "CO_fraction"]
-        )  # ["ramses", "hydro_CO_fraction"]
+        return data["gas", "density"] * data["gas", "CO_fraction"]  # ["ramses", "hydro_CO_fraction"]
 
     ds.add_field(
         name=("gas", "CO_density"),
@@ -188,9 +180,7 @@ def _initialize_electron_number_density(ds):
             metal_name = metal_data[element]["name"]
             nEl = data["gas", f"{metal_name}_density"] / metal_data[element]["mass"]
             for ion in range(metal_data[element]["Nion"]):
-                xEl_ion = data[
-                    "gas", f"{metal_name}_{ion + 1:02d}"
-                ]  # ["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
+                xEl_ion = data["gas", f"{metal_name}_{ion + 1:02d}"]  # ["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
                 nEl_ion += ion * nEl * xEl_ion
 
         return nHII + nHeII + nHeIII + nEl_ion
@@ -229,10 +219,7 @@ def _initialize_mean_molecular_weight(ds):
 
         # NOTE: Not really the hydrogen number density, but the number of bound objects containing hydrogen
         #       Real nH is the total number density of hydrogen atoms (nH = nHI + nHII + 2*nH2)
-        nH = (
-            data["gas", "hydrogen_number_density"] * (xHI + xHII)
-            + data["gas", "H2_number_density"]
-        )
+        nH = data["gas", "hydrogen_number_density"] * (xHI + xHII) + data["gas", "H2_number_density"]
 
         nHe = data["gas", "helium_number_density"]
         nCO = data["gas", "CO_number_density"]
@@ -258,9 +245,7 @@ def _initialize_mean_molecular_weight(ds):
     )
 
 
-def create_chemistry_derived_fields(
-    ds, molecules=True, electron_number_density=True, mean_molecular_weight=False
-):
+def create_chemistry_derived_fields(ds, molecules=True, electron_number_density=True, mean_molecular_weight=False):
     """
     Initialize the derived fields for the chemistry module.
 

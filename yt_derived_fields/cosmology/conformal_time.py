@@ -23,11 +23,9 @@ class ConformalTime:
         while self.tau_frw[i] > tau and i < self.n_frw:
             i += 1
         # Linear interpolation
-        t = self.t_frw_yr[i] * (tau - self.tau_frw[i - 1]) / (
-            self.tau_frw[i] - self.tau_frw[i - 1]
-        ) + self.t_frw_yr[i - 1] * (tau - self.tau_frw[i]) / (
-            self.tau_frw[i - 1] - self.tau_frw[i]
-        )
+        t = self.t_frw_yr[i] * (tau - self.tau_frw[i - 1]) / (self.tau_frw[i] - self.tau_frw[i - 1]) + self.t_frw_yr[
+            i - 1
+        ] * (tau - self.tau_frw[i]) / (self.tau_frw[i - 1] - self.tau_frw[i])
         return t
 
     def ct_proptime2time(self, tau, h0):
@@ -41,9 +39,7 @@ class ConformalTime:
             i += 1
         t = self.t_frw_yr[i] * (aexp - self.aexp_frw[i - 1]) / (
             self.aexp_frw[i] - self.aexp_frw[i - 1]
-        ) + self.t_frw_yr[i - 1] * (aexp - self.aexp_frw[i]) / (
-            self.aexp_frw[i - 1] - self.aexp_frw[i]
-        )
+        ) + self.t_frw_yr[i - 1] * (aexp - self.aexp_frw[i]) / (self.aexp_frw[i - 1] - self.aexp_frw[i])
         return t
 
     def ct_redshift2time(self, z):
@@ -105,9 +101,7 @@ class ConformalTime:
         while (axp_tau >= axp_min) or (axp_t >= axp_min):
             nstep += 1
             dtau = alpha * axp_tau / self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0)
-            axp_tau_pre = (
-                axp_tau - self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0) * dtau / 2.0
-            )
+            axp_tau_pre = axp_tau - self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0) * dtau / 2.0
             axp_tau = axp_tau - self.dadtau(axp_tau_pre, O_mat_0, O_vac_0, O_k_0) * dtau
             tau = tau - dtau
 
@@ -135,9 +129,7 @@ class ConformalTime:
         while (axp_tau >= axp_min) or (axp_t >= axp_min):
             nstep += 1
             dtau = alpha * axp_tau / self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0)
-            axp_tau_pre = (
-                axp_tau - self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0) * dtau / 2.0
-            )
+            axp_tau_pre = axp_tau - self.dadtau(axp_tau, O_mat_0, O_vac_0, O_k_0) * dtau / 2.0
             axp_tau = axp_tau - self.dadtau(axp_tau_pre, O_mat_0, O_vac_0, O_k_0) * dtau
             tau = tau - dtau
 

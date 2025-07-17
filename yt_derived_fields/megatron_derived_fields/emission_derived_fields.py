@@ -55,20 +55,14 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
 
     # Need to generate the chemistry derived fields first, as we need to calculate the electron number density
-    chem_fields.create_chemistry_derived_fields(
-        ds, molecules=False, mean_molecular_weight=False
-    )
+    chem_fields.create_chemistry_derived_fields(ds, molecules=False, mean_molecular_weight=False)
 
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
     if coll_lines is not None or all_lines:
-        coll_line_dict = np.load(
-            f"{_spectral_data}/coll_line_dict.npy", allow_pickle=True
-        ).item()
+        coll_line_dict = np.load(f"{_spectral_data}/coll_line_dict.npy", allow_pickle=True).item()
     if rec_lines is not None or all_lines:
-        rec_line_dict = np.load(
-            f"{_spectral_data}/rec_line_dict.npy", allow_pickle=True
-        ).item()
+        rec_line_dict = np.load(f"{_spectral_data}/rec_line_dict.npy", allow_pickle=True).item()
 
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
@@ -131,16 +125,10 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             el = rec_line_dict[line]["ion"].split("_")[0]
             ion_roman = rec_line_dict[line]["ion"].split("_")[1]
 
-            nel = (
-                data["gas", f"{prim_data[el]['name']}_number_density"]
-                .to("1/cm**3")
-                .value
-            )
+            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value
 
             xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"]
-            xion_col = data[
-                "gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"
-            ]
+            xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"]
 
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s

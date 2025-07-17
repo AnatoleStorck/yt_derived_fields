@@ -12,7 +12,6 @@ from yt_derived_fields.spectral_utils import pop3_stellar_spectra
 import yt_derived_fields.megatron_derived_fields.stars_derived_fields as stars_derived_fields
 
 
-
 def _initialize_pop2_spectra(ds):
     def pop2_spectra(field, data):
         Npop2 = np.sum(data["pop2", "particle_ones"])
@@ -29,12 +28,7 @@ def _initialize_pop2_spectra(ds):
 
             for unique_star_cell_id in unique_star_cell_ids:
                 gas_pop2_spectra += np.sum(
-                    [
-                        pop2_spec[index]
-                        for index in stars_cell_ids[
-                            stars_cell_ids == unique_star_cell_id
-                        ]
-                    ]
+                    [pop2_spec[index] for index in stars_cell_ids[stars_cell_ids == unique_star_cell_id]]
                 )
 
         return gas_pop2_spectra
@@ -64,12 +58,7 @@ def _initialize_pop3_spectra(ds):
 
             for unique_star_cell_id in unique_star_cell_ids:
                 gas_pop3_spectra += np.sum(
-                    [
-                        pop3_spec[index]
-                        for index in stars_cell_ids[
-                            stars_cell_ids == unique_star_cell_id
-                        ]
-                    ]
+                    [pop3_spec[index] for index in stars_cell_ids[stars_cell_ids == unique_star_cell_id]]
                 )
 
         return gas_pop3_spectra

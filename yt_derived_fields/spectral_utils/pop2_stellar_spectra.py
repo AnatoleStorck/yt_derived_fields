@@ -10,11 +10,7 @@ import unyt as u
 def wavelength_space(lmin, lmax, downsample, ds_nwv):
     wvls = np.arange(lmin, lmax + 0.1)
     if downsample:
-        wvls = (
-            pd.Series(wvls)
-            .rolling(window=ds_nwv, min_periods=1, center=True)
-            .mean()[::ds_nwv]
-        )
+        wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
     return wvls
 
 
@@ -43,9 +39,7 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
         "z030",
         "z040",
     ]
-    metal_vals = np.array(
-        [1e-5, 1e-4, 1e-3, 2e-3, 3e-3, 4e-3, 6e-3, 8e-3, 1e-2, 1.4e-2, 2e-2, 3e-2, 4e-2]
-    )
+    metal_vals = np.array([1e-5, 1e-4, 1e-3, 2e-3, 3e-3, 4e-3, 6e-3, 8e-3, 1e-2, 1.4e-2, 2e-2, 3e-2, 4e-2])
 
     ages = 10.0 ** (6.0 + 0.1 * np.arange(51))
 
@@ -63,9 +57,7 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
     all_spec[0, :, :] = dat
 
     for i, m in enumerate(metal_names[1:]):
-        dat = np.load(
-            f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{m}.dat.npy"
-        ).T
+        dat = np.load(f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{m}.dat.npy").T
         all_spec[i + 1, :, :] = dat
 
     popII_interp = RegularGridInterpolator((metal_vals, ages), all_spec)
@@ -80,9 +72,7 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
         for ii in range(len(metal_vals)):
             for jj in range(len(ages)):
                 all_spec_ds[ii, jj] = (
-                    pd.Series(all_spec[ii, jj])
-                    .rolling(window=ds_nwv, min_periods=1, center=True)
-                    .mean()[::ds_nwv]
+                    pd.Series(all_spec[ii, jj]).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
                 )
 
         # Interpolate the spectra over mass
@@ -113,9 +103,7 @@ def get_pop_2_spectrum(
     if N_pop2 < 1:
         return np.zeros_like(wavelength_space())
 
-    metals_p2, ages_p2, spec_interp_p2 = generate_pop_II_spec_interp(
-        lmin, lmax, downsample, ds_nwv
-    )
+    metals_p2, ages_p2, spec_interp_p2 = generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv)
 
     # Get data for interpolation
     to_interp = np.zeros((N_pop2, 2))

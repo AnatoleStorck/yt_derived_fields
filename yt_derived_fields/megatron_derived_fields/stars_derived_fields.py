@@ -47,12 +47,7 @@ def _initialize_star_age(ds):
         star_birth_time_proper = data["star", "conformal_birth_time"]
 
         # Convert from proper time to time
-        star_birth_time = (
-            cosmology.ct_proptime2time(
-                tau=star_birth_time_proper, h0=ds.hubble_constant * 100
-            )
-            * u.yr
-        )
+        star_birth_time = cosmology.ct_proptime2time(tau=star_birth_time_proper, h0=ds.hubble_constant * 100) * u.yr
 
         # To get the age, subtract the birth time from the current time
         star_age = (stimeYr - star_birth_time).to("Myr")

@@ -28,9 +28,7 @@ def get_Npart(ds):
     return N_gas_tracer, N_dm
 
 
-@yt.particle_filter(
-    requires=["particle_family", "particle_mass"], filtered_type="gas_tracer"
-)
+@yt.particle_filter(requires=["particle_family", "particle_mass"], filtered_type="gas_tracer")
 def gas_tracer_noNaN(field, data):
     """
     Filter to select gas tracers that have a valid cell index.
@@ -60,9 +58,7 @@ def particle_position_redefine_for_gas_tracers(field, data):
 
     if gas_tracer_filter.sum() > 0:
         tracer_cell_index = data["gas_tracer_noNaN", "cell_index"]
-        tracer_cell_dx = np.cbrt(data["gas_tracer_noNaN", "cell_gas_volume"]).to(
-            "Mpccm/h"
-        )
+        tracer_cell_dx = np.cbrt(data["gas_tracer_noNaN", "cell_gas_volume"]).to("Mpccm/h")
 
         tracer_pos = io_pos[gas_tracer_filter]
 
@@ -138,13 +134,9 @@ def particle_velocity_redefine_for_gas_tracers(field, data):
         tracer_cell_vel_y = data["gas_tracer_noNaN", "cell_gas_velocity_y"].to("km/s")
         tracer_cell_vel_z = data["gas_tracer_noNaN", "cell_gas_velocity_z"].to("km/s")
 
-        new_tracer_vel = np.column_stack(
-            [tracer_cell_vel_x, tracer_cell_vel_y, tracer_cell_vel_z]
-        )
+        new_tracer_vel = np.column_stack([tracer_cell_vel_x, tracer_cell_vel_y, tracer_cell_vel_z])
 
-        perturbation = (
-            np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-3 * u.km / u.s
-        )
+        perturbation = np.random.uniform(-1, 1, size=new_tracer_vel.shape) * 1e-3 * u.km / u.s
 
         new_tracer_vel[:, 0] += perturbation[:, 0]
         new_tracer_vel[:, 1] += perturbation[:, 1]
@@ -244,9 +236,7 @@ def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
         # grab the gas tracer cell data
         ds.add_mesh_sampling_particle_field(("gas", "volume"), ptype="gas_tracer_noNaN")
         [
-            ds.add_mesh_sampling_particle_field(
-                ("gas", f"velocity_{axis}"), ptype="gas_tracer_noNaN"
-            )
+            ds.add_mesh_sampling_particle_field(("gas", f"velocity_{axis}"), ptype="gas_tracer_noNaN")
             for axis in ["x", "y", "z"]
         ]
 

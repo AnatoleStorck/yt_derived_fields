@@ -344,9 +344,7 @@ for col_line in coll_line_dict.keys():
     atom = coll_line_dict[col_line]["atom"]
     lev_u = coll_line_dict[col_line]["lev_u"]
     lev_d = coll_line_dict[col_line]["lev_d"]
-    em_grid = atom.getEmissivity(
-        tem=temperatures, den=e_densities, lev_i=lev_u, lev_j=lev_d, product=True
-    )
+    em_grid = atom.getEmissivity(tem=temperatures, den=e_densities, lev_i=lev_u, lev_j=lev_d, product=True)
     interp = RegularGridInterpolator(
         (np.log10(temperatures), np.log10(e_densities)),
         em_grid,
@@ -420,9 +418,7 @@ for rec_line in rec_line_dict:
     lev_d = rec_line_dict[rec_line]["lev_d"]
     em_grid = np.zeros((len(temperatures), len(e_densities)))
     for i, ne in enumerate(e_densities):
-        em = rec_line_dict[rec_line]["atom"].getEmissivity(
-            temperatures, ne, lev_i=lev_u, lev_j=lev_d
-        )
+        em = rec_line_dict[rec_line]["atom"].getEmissivity(temperatures, ne, lev_i=lev_u, lev_j=lev_d)
         filt_loc = np.isnan(em)
         mf = interp1d(
             np.log10(temperatures[~filt_loc]),
@@ -473,12 +469,8 @@ for rec_line in rec_line_dict:
     col_emissivity = np.zeros(len(temps_chianti))
 
     for i in range(len(rd["pretty2"])):
-        if (str(rd["pretty2"][i][0]) == str(lev_u)) & (
-            str(rd["pretty1"][i][0]) == str(lev_d)
-        ):
-            col_emissivity += (
-                np.array(rd["emiss"][i]) * 4.0 * np.pi
-            )  # Note: Chianti emissivities are per steradian
+        if (str(rd["pretty2"][i][0]) == str(lev_u)) & (str(rd["pretty1"][i][0]) == str(lev_d)):
+            col_emissivity += np.array(rd["emiss"][i]) * 4.0 * np.pi  # Note: Chianti emissivities are per steradian
 
     interp = interp1d(temps_chianti, col_emissivity)
     rec_line_dict[rec_line]["emis_grid_col"] = interp
