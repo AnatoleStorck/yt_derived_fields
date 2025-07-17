@@ -7,6 +7,7 @@
 # Everything normally needs to be in cgs units
 
 # TODO: Add corections for unresolved stromgren spheres
+# TODO: remove some hardcoded constants and definitions
 
 # Author: Anatole Storck
 
