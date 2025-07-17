@@ -22,7 +22,7 @@ metal_data = {
     "Ca":   {"name" : "calcium",    "mass": 40.078  * u.amu,     "Nion": 0 }
 }
 prim_data = {
-    "H":    {"name" : "hydrogen",    "mass": 1.00794  * u.amu,   "Nion": 2,     "massFrac": 0.76},
+    "H":    {"name" : "hydrogen",    "mass": 1.007947 * u.amu,   "Nion": 2,     "massFrac": 0.76},
     "He":   {"name" : "helium",      "mass": 4.002602 * u.amu,   "Nion": 3,     "massFrac": 0.24}
 }
 molec_data = {
@@ -47,6 +47,15 @@ def _initialize_metal_density(ds, element: str):
                 units="amu/cm**3",
                 sampling_type="cell",
                 display_name=f"{metal_name.capitalize()} density",)
+    
+    def _metal_number_density(field, data):
+        return data["gas", f"{metal_name}_density"] / metal_data[element]["mass"]
+    
+    ds.add_field(name=("gas", f"{metal_name}_number_density"),
+                function=_metal_number_density,
+                units="cm**-3",
+                sampling_type="cell",
+                display_name=f"{metal_name.capitalize()} number density",)
 
 def _initialize_metallicity(ds):
     
@@ -76,9 +85,6 @@ def _initialize_primordial_density(ds, element):
                 units="amu/cm**3",
                 sampling_type="cell",
                 display_name=f"{prim_name.capitalize()} density",)
-    
-def _initialize_primordial_number_density(ds, element):
-    prim_name = prim_data[element]["name"]
     def _primordial_number_density(field, data):
         return data["gas", f"{prim_name}_density"] / prim_data[element]["mass"]
     
@@ -88,14 +94,14 @@ def _initialize_primordial_number_density(ds, element):
                 sampling_type="cell",
                 display_name=f"{prim_name.capitalize()} number density",)
     
-def _initialize_H2_number_density(ds):
+def _initialize_H2(ds):
     
     def _H2_number_density(field, data):
         
         xHI = data["gas", "hydrogen_01"]    # ["ramses", "hydro_H_01"]
         xHII = data["gas", "hydrogen_02"]   # ["ramses", "hydro_H_02"]
 
-        xH2 = 1 - xHI - xHII
+        xH2 = np.clip(1 - xHI - xHII, 0, 1)
         return data["gas", "hydrogen_number_density"] * xH2 / 2
     
     ds.add_field(name=("gas", "H2_number_density"),
@@ -104,19 +110,28 @@ def _initialize_H2_number_density(ds):
                 sampling_type="cell",
                 display_name="H2 number density",)
     
+    def _H2_density(field, data):
+        return data["gas", "H2_number_density"] * molec_data["H2"]["mass"]
+    
+    ds.add_field(name=("gas", "H2_density"),
+                function=_H2_density,
+                units="amu/cm**3",
+                sampling_type="cell",
+                display_name="H2 density",)
+    
 def _initialize_CO(ds):
     
     def _CO_density(field, data):
         return data["gas", "density"] * data["gas", "CO_fraction"] # ["ramses", "hydro_CO_fraction"]
-    
-    def _CO_number_density(field, data):
-        return data["gas", "CO_density"] / molec_data["CO"]["mass"]
 
     ds.add_field(name=("gas", "CO_density"),
                 function=_CO_density,
                 units="amu/cm**3",
                 sampling_type="cell",
                 display_name="CO density",)
+    
+    def _CO_number_density(field, data):
+        return data["gas", "CO_density"] / molec_data["CO"]["mass"]
     
     ds.add_field(name=("gas", "CO_number_density"),
                 function=_CO_number_density,
@@ -211,7 +226,7 @@ def _initialize_mean_molecular_weight(ds):
 def create_chemistry_derived_fields(ds,
                                    molecules=True,
                                    electron_number_density=True,
-                                   mean_molecular_weight=True):
+                                   mean_molecular_weight=False):
     """
     Initialize the derived fields for the chemistry module.
     
@@ -219,8 +234,12 @@ def create_chemistry_derived_fields(ds,
     ----------
     ds : yt.Dataset
         The dataset object.
+    molecules : bool, optional
+        If True, include the molecular hydrogen and carbon monoxide fields. Default is True.
     electron_number_density : bool, optional
         If True, include the electron number density field, needing the metal ion fractions. Default is True.
+    mean_molecular_weight : bool, optional
+        If True, include the mean molecular weight field, needing the CO, H2, and e number densities. Default is False.
     """
     
     # Add fields for metal densities
@@ -231,16 +250,14 @@ def create_chemistry_derived_fields(ds,
     
     for element in prim_data:
         _initialize_primordial_density(ds, element)
-        _initialize_primordial_number_density(ds, element)
 
     if electron_number_density:
         _initialize_electron_number_density(ds)
         
     if molecules:
-        _initialize_H2_number_density(ds)
+        _initialize_H2(ds)
         _initialize_CO(ds)
         
-        # Can't calculate mean molecular weight without CO
-        if mean_molecular_weight:
-            _initialize_mean_molecular_weight(ds)
+    if mean_molecular_weight and molecules and electron_number_density:
+        _initialize_mean_molecular_weight(ds)
 
