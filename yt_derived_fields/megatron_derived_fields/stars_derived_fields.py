@@ -72,8 +72,8 @@ def _initialize_pop2_star_filter(ds):
 
     def _pop2_star_filter(filter, data):
         # Metallicity criteria for Pop. II stars in MEGATRON
-        met_O = data[pfilter.filtered_type, "particle_metallicity_002"]
-        met_Fe = data[pfilter.filtered_type, "particle_metallicity_001"]
+        met_O = data["star", "particle_metallicity_002"]
+        met_Fe = data["star", "particle_metallicity_001"]
 
         return (met_O * 2.09 + 1.06 * met_Fe) >= 2e-8
 
@@ -90,8 +90,8 @@ def _initialize_pop2_star_filter(ds):
 def _initialize_pop3_star_filter(ds):
     def _pop3_star_filter(filter, data):
         # Metallicity criteria for Pop. III stars in MEGATRON
-        met_O = data[pfilter.filtered_type, "particle_metallicity_002"]
-        met_Fe = data[pfilter.filtered_type, "particle_metallicity_001"]
+        met_O = data["star", "particle_metallicity_002"]
+        met_Fe = data["star", "particle_metallicity_001"]
 
         return (met_O * 2.09 + 1.06 * met_Fe) < 2e-8
 

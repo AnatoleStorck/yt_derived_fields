@@ -70,7 +70,7 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             nCells = len(data["gas", "density"].to("g/cm**3").value)
             rho = data["gas", "density"].to("g/cm**3").value
 
-            Tgas = np.log10(data["gas", "temperature"].to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K").value)
 
             ne = data["gas", "electron_number_density"].to("cm**-3").value
             cell_vol = data["gas", "volume"].to("cm**3").value
@@ -80,8 +80,8 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             el = coll_line_dict[line]["ion"].split("_")[0]  # C,    O,      Fe
             ion_roman = coll_line_dict[line]["ion"].split("_")[1]  # II,   III,    VII
 
-            nel = data["gas", f"{met_data[el]['name']}_number_density"]
-            xion = data["gas", f"{met_data[el]['name']}_{fromRoman(ion_roman):02d}"]
+            nel = data["gas", f"{met_data[el]['name']}_number_density"].to("cm**-3").value
+            xion = data["gas", f"{met_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
 
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
@@ -115,7 +115,7 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             nCells = len(data["gas", "density"].to("g/cm**3").value)
             rho = data["gas", "density"].to("g/cm**3").value
 
-            Tgas = np.log10(data["gas", "temperature"].to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K").value)
 
             ne = data["gas", "electron_number_density"].to("cm**-3").value
             cell_vol = data["gas", "volume"].to("cm**3").value
@@ -127,8 +127,8 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
 
             nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value
 
-            xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"]
-            xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"]
+            xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
+            xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"].value
 
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
