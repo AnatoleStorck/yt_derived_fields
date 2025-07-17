@@ -2,7 +2,7 @@
 aliases = ["temperature"]              # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"
-[fields.ramses.temperature]             # In Megatron (CP) 
+[fields.ramses.temperature]             # In Megatron (CP)
 aliases = ["temperature"]              # Note: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
 units = "code_temperature"
 display_name = "Temperature"

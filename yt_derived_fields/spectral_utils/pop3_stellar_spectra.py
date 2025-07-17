@@ -1,18 +1,17 @@
-
-
 import numpy as np
 import pandas as pd
 
 from scipy.interpolate import RegularGridInterpolator
 
 import unyt as u
-import yt_derived_fields.megatron_derived_fields.stars_derived_fields as stars_derived_fields
+
 
 def wavelength_space(lmin, lmax, downsample, ds_nwv):
-    wvls = np.arange(lmin,lmax+0.1)
+    wvls = np.arange(lmin, lmax + 0.1)
     if downsample:
         wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
     return wvls
+
 
 # Larkin et al. (2023) spectra (interpolated over mass)
 def generate_pop_III_spec_interp(lmin, lmax, downsample, ds_nwv):
@@ -25,23 +24,24 @@ def generate_pop_III_spec_interp(lmin, lmax, downsample, ds_nwv):
     props = pd.read_csv("/mnt/glacier/DATA/Pop_III_spectra/model_params.dat")
 
     # Interpolate the spectra over mass
-    popIII_interp = RegularGridInterpolator((np.array(props["Mass_Msol"]),),dat)
+    popIII_interp = RegularGridInterpolator((np.array(props["Mass_Msol"]),), dat)
 
     if downsample:
         wvls_ds = wavelength_space(lmin, lmax, downsample, ds_nwv)
 
         # Initialize the downsampled grid
-        dat_ds = np.zeros((len(dat),len(wvls_ds)))
+        dat_ds = np.zeros((len(dat), len(wvls_ds)))
 
         for ii in range(len(dat)):
             dat_ds[ii] = pd.Series(dat[ii]).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
 
         # Interpolate the spectra over mass
-        popIII_interp_ds = RegularGridInterpolator((np.array(props["Mass_Msol"]),),dat_ds)
+        popIII_interp_ds = RegularGridInterpolator((np.array(props["Mass_Msol"]),), dat_ds)
 
         return popIII_interp_ds
 
     return popIII_interp
+
 
 def get_pop_3_spectrum(data, combined=True, lmin=1150, lmax=10000, downsample=True, ds_nwv=5):
     """

@@ -64,7 +64,7 @@ The functionality is ever-expanding, here are a few examples of what is currentl
    ```python
    import yt
    import pandas as pd
-   
+
    import yt_derived_fields.megatron_derived_fields.chemistry_derived_fields as chem_fields
    import yt_derived_fields.megatron_derived_fields.cooling_derived_fields as cool_fields
    import yt_derived_fields.megatron_derived_fields.stars_derived_fields as star_fields
