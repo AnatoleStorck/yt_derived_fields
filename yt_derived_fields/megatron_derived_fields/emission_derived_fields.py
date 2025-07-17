@@ -14,6 +14,7 @@ from yt import units as u
 from yt.fields.field_detector import FieldDetector
 
 from pathlib import Path
+from roman import fromRoman
 import numpy as np
 
 from yt_derived_fields.megatron_derived_fields import chemistry_derived_fields as chem_fields
@@ -33,13 +34,7 @@ prim_data = {
     "He":   {"name" : "helium",     "mass": 4.002602 * u.amu,  "massFrac": 0.24},
 }
 
-# The roman numerals are used to identify the ionization state of the element
-roman_numerals = {
-    "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6,
-    "VII": 7, "VIII": 8, "IX": 9, "X": 10, "XI": 11, "XII": 12
-}
-
-_spectral_data = f"{Path(__file__).parent.parent}/spectral_utils"
+_spectral_data = Path(__file__).parent.parent / "spectral_utils"
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
@@ -68,23 +63,21 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     
         def _get_coll_line_lum(field, data):
             
-            nCells = len(data["gas", "density"].to("g/cm**3").value.flatten())
-            rho = data["gas", "density"].to("g/cm**3").value.flatten()
+            nCells = len(data["gas", "density"].to("g/cm**3").value)
+            rho = data["gas", "density"].to("g/cm**3").value
             
-            # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
-            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
-            # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K"))
 
-            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
-            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
+            ne = data["gas", "electron_number_density"].to("cm**-3").value
+            cell_vol = data["gas", "volume"].to("cm**3").value
             
             # ----------------------------------------------------------
             
             el  = coll_line_dict[line]["ion"].split("_")[0]           # C,    O,      Fe
-            ion_roman = coll_line_dict[line]["ion"].split("_")[1]     # II,   III,    VII       
+            ion_roman = coll_line_dict[line]["ion"].split("_")[1]     # II,   III,    VII
             
-            nel = rho * data["gas", f"{met_data[el]['name']}_fraction"].flatten() / met_data[el]["mass"].to("g").value
-            xion = data["gas", f"{met_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
+            nel = data["gas", f"{met_data[el]['name']}_number_density"]
+            xion = data["gas", f"{met_data[el]['name']}_{fromRoman(ion_roman):02d}"]
             
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
@@ -115,28 +108,23 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
         
         def _get_rec_line_lum(field, data):
 
-            nCells = len(data["gas", "density"].to("g/cm**3").value.flatten())
-            rho = data["gas", "density"].to("g/cm**3").value.flatten()
+            nCells = len(data["gas", "density"].to("g/cm**3").value)
+            rho = data["gas", "density"].to("g/cm**3").value
             
-            # NOTE: This change assumes that https://github.com/yt-project/yt/pull/5169 is merged
-            Tgas = np.log10(data["gas", "temperature"].to("K")).flatten()
-            # Tgas = np.log10((data["ramses", "hydro_temperature"] * u_ds.code_temperature).to("K"))
+            Tgas = np.log10(data["gas", "temperature"].to("K"))
 
-            ne = data["gas", "electron_number_density"].to("cm**-3").value.flatten()
-            cell_vol = data["gas", "volume"].to("cm**3").value.flatten()
+            ne = data["gas", "electron_number_density"].to("cm**-3").value
+            cell_vol = data["gas", "volume"].to("cm**3").value
             
             # ----------------------------------------------------------
             
             el  = rec_line_dict[line]["ion"].split("_")[0]
             ion_roman = rec_line_dict[line]["ion"].split("_")[1]
-            # remove the last roman numeral to get lower ionization state
-            # NOTE: only works because rec roman numerals go up to III
-            ion_col_roman = ion_roman[:-1]
             
-            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value.flatten()
-            
-            xion = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_roman]:02d}"].flatten()
-            xion_col = data["gas", f"{prim_data[el]['name']}_{roman_numerals[ion_col_roman]:02d}"].flatten()
+            nel = data["gas", f"{prim_data[el]['name']}_number_density"].to("1/cm**3").value
+
+            xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"]
+            xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"]
             
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
