@@ -107,8 +107,8 @@ def get_pop_2_spectrum(
 
     # Get data for interpolation
     to_interp = np.zeros((N_pop2, 2))
-    met_O = data["pop2", "particle_metallicity_002"]
-    met_Fe = data["pop2", "particle_metallicity_001"]
+    met_O = data["pop2", "particle_metallicity_002"].value
+    met_Fe = data["pop2", "particle_metallicity_001"].value
     to_interp[:, 0] = 2.09 * met_O + 1.06 * met_Fe
     to_interp[:, 1] = data["pop2", "age"].to("yr").value
 
@@ -136,6 +136,7 @@ def get_pop_2_spectrum(
     def batch_interp(c1, c2):
         return spec_interp_p2(to_interp[c1:c2, :]) * initial_masses[c1:c2, None]
 
+    # TODO: Check that the order of batch results is the same as the order of to_interp
     # Parallelize over batches
     batch_results = Parallel(n_jobs=n_cpus)(delayed(batch_interp)(all_c1[i], all_c2[i]) for i in range(len(all_c1)))
 
