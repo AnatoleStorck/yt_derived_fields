@@ -44,7 +44,7 @@ def _initialize_star_age(ds):
     def _star_age(field, data):
         # Birth time of the star particle
         # NOTE: while the field mentions conformal time, it is actually the proper time for RT sims
-        star_birth_time_proper = data["star", "conformal_birth_time"]
+        star_birth_time_proper = data["star", "conformal_birth_time"].value
 
         # Convert from proper time to time
         star_birth_time = cosmology.ct_proptime2time(tau=star_birth_time_proper, h0=ds.hubble_constant * 100) * u.yr
@@ -72,8 +72,8 @@ def _initialize_pop2_star_filter(ds):
 
     def _pop2_star_filter(filter, data):
         # Metallicity criteria for Pop. II stars in MEGATRON
-        met_O = data["star", "particle_metallicity_002"]
-        met_Fe = data["star", "particle_metallicity_001"]
+        met_O = data["star", "particle_metallicity_002"].value
+        met_Fe = data["star", "particle_metallicity_001"].value
 
         return (met_O * 2.09 + 1.06 * met_Fe) >= 2e-8
 
@@ -84,14 +84,15 @@ def _initialize_pop2_star_filter(ds):
         filtered_type="star",
     )
 
-    ds.add_particle_filter("pop2")
+    if "pop2" not in ds.filtered_particle_types:
+        ds.add_particle_filter("pop2")
 
 
 def _initialize_pop3_star_filter(ds):
     def _pop3_star_filter(filter, data):
         # Metallicity criteria for Pop. III stars in MEGATRON
-        met_O = data["star", "particle_metallicity_002"]
-        met_Fe = data["star", "particle_metallicity_001"]
+        met_O = data["star", "particle_metallicity_002"].value
+        met_Fe = data["star", "particle_metallicity_001"].value
 
         return (met_O * 2.09 + 1.06 * met_Fe) < 2e-8
 
@@ -101,8 +102,9 @@ def _initialize_pop3_star_filter(ds):
         requires=["particle_metallicity_002", "particle_metallicity_001"],
         filtered_type="star",
     )
-
-    ds.add_particle_filter("pop3")
+    
+    if "pop3" not in ds.filtered_particle_types:
+        ds.add_particle_filter("pop3")
 
 
 def _initialize_pop3_aliveStatus(ds):
