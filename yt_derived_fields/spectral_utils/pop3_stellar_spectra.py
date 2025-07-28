@@ -52,7 +52,7 @@ def get_pop_3_spectrum(data, combined=True, lmin=1150, lmax=10000, downsample=Tr
     pop3_alive_status = data["pop3", "isAlive"]
 
     if not np.any(pop3_alive_status):
-        return np.zeros_like(wavelength_space(lmin, lmax, downsample, ds_nwv))
+        return np.zeros_like(wavelength_space(lmin, lmax, downsample, ds_nwv)) * u.erg / u.s
 
     # Get a list of active Pop III masses
     active_popIII_masses = data["pop3", "particle_initial_mass"][pop3_alive_status].to("Msun").value

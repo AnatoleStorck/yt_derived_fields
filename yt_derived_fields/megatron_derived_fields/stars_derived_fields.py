@@ -7,14 +7,19 @@ import yt
 from yt import units as u
 from yt_derived_fields.cosmology import conformal_time as ct
 
+from yt_derived_fields.spectral_utils import pop2_stellar_spectra
+from yt_derived_fields.spectral_utils import pop3_stellar_spectra
+
 
 def create_star_derived_fields(ds):
     _initialize_star_age(ds)
 
     _initialize_pop2_star_filter(ds)
+    _initialize_pop2_spectra(ds)
 
     _initialize_pop3_star_filter(ds)
     _initialize_pop3_aliveStatus(ds)
+    _initialize_pop3_spectra(ds)
 
 
 def _initialize_star_age(ds):
@@ -102,7 +107,7 @@ def _initialize_pop3_star_filter(ds):
         requires=["particle_metallicity_002", "particle_metallicity_001"],
         filtered_type="star",
     )
-    
+
     if "pop3" not in ds.filtered_particle_types:
         ds.add_particle_filter("pop3")
 
@@ -149,4 +154,40 @@ def _initialize_pop3_aliveStatus(ds):
         force_override=True,
         sampling_type="particle",
         display_name="Pop. III Star Alive Status",
+    )
+
+
+def _initialize_pop2_spectra(ds):
+    def pop2_spectra(field, data):
+
+        pop2_spec = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=False)
+
+        return pop2_spec
+
+    ds.add_field(
+        name=("pop2", "spectra"),
+        function=pop2_spectra,
+        force_override=True,
+        units="erg/s",
+        sampling_type="particle",
+        vector_field=True,
+        display_name="Pop. II Star Spectra",
+    )
+
+
+def _initialize_pop3_spectra(ds):
+    def pop3_spectra(field, data):
+
+        pop3_spec = pop3_stellar_spectra.get_pop_3_spectrum(data, combined=False)
+
+        return pop3_spec
+
+    ds.add_field(
+        name=("pop3", "spectra"),
+        function=pop3_spectra,
+        force_override=True,
+        units="erg/s",
+        sampling_type="particle",
+        vector_field=True,
+        display_name="Pop. III Star Spectra",
     )

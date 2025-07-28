@@ -85,7 +85,7 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
 
 def get_pop_2_spectrum(
     data,
-    combined=True,
+    combined=False,
     lmin=1150,
     lmax=10000,
     downsample=True,
@@ -101,7 +101,7 @@ def get_pop_2_spectrum(
     N_pop2 = int(np.sum(data["pop2", "particle_ones"]))
 
     if N_pop2 < 1:
-        return np.zeros_like(wavelength_space())
+        return np.zeros_like(wavelength_space(lmin, lmax, downsample, ds_nwv)) * u.erg / u.s
 
     metals_p2, ages_p2, spec_interp_p2 = generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv)
 
