@@ -7,6 +7,7 @@
 
 from yt import units as u
 import numpy as np
+from roman import toRoman
 
 import chemistry_data as chem_data
 
@@ -21,7 +22,9 @@ def _initialize_metal_density(ds, element: str):
         if element == "Fe":  # NOTE: iron_fraction is "Metallicity"
             metal_density = data["gas", "density"] * data["gas", "iron_fraction"]
         else:
-            metal_density = data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
+            metal_density = (
+                data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
+            )
 
         return metal_density
 
@@ -43,6 +46,43 @@ def _initialize_metal_density(ds, element: str):
         sampling_type="cell",
         display_name=f"{metal_name.capitalize()} number density",
     )
+
+
+def _initialize_ion_densities(ds, element: str):
+    def gen_func(metal_name, ion):
+        def _ion_density(field, data):
+            return (
+                data["gas", f"{metal_name}_density"]
+                * data["gas", f"{metal_name}_{ion:02d}"]
+            )
+
+        def _ion_number_density(field, data):
+            return (
+                data["gas", f"{metal_name}_number_density"]
+                * data["gas", f"{metal_name}_{ion:02d}"]
+            )
+
+        return _ion_density, _ion_number_density
+
+    metal_name = metal_data[element]["name"]
+    for ion in range(1, metal_data[element]["Nion"] + 1):
+        rhoX, nX = gen_func(metal_name, ion)
+        ion_roman = toRoman(ion)
+
+        ds.add_field(
+            name=("gas", f"{metal_name}_{ion:02d}_density"),
+            function=rhoX,
+            units="amu/cm**3",
+            sampling_type="cell",
+            display_name=f"{metal_name.capitalize()} {ion_roman} density",
+        )
+        ds.add_field(
+            name=("gas", f"{metal_name}_{ion:02d}_number_density"),
+            function=nX,
+            units="cm**-3",
+            sampling_type="cell",
+            display_name=f"{metal_name.capitalize()} {ion_roman} number density",
+        )
 
 
 def _initialize_metallicity(ds):
@@ -77,7 +117,11 @@ def _initialize_primordial_density(ds, element):
     prim_name = prim_data[element]["name"]
 
     def _primordial_density(field, data):
-        return data["gas", "density"] * prim_data[element]["massFrac"] * (1 - data["gas", "real_metallicity"])
+        return (
+            data["gas", "density"]
+            * prim_data[element]["massFrac"]
+            * (1 - data["gas", "real_metallicity"])
+        )
 
     ds.add_field(
         name=("gas", f"{prim_name}_density"),
@@ -129,7 +173,9 @@ def _initialize_H2(ds):
 
 def _initialize_CO(ds):
     def _CO_density(field, data):
-        return data["gas", "density"] * data["gas", "CO_fraction"]  # ["ramses", "hydro_CO_fraction"]
+        return (
+            data["gas", "density"] * data["gas", "CO_fraction"]
+        )  # ["ramses", "hydro_CO_fraction"]
 
     ds.add_field(
         name=("gas", "CO_density"),
@@ -151,7 +197,7 @@ def _initialize_CO(ds):
     )
 
 
-def _initialize_electron_number_density(ds):
+def _initialize_electron_number_density(ds, primordial_only=False):
     def _electron_number_density(field, data):
         # NOTE: Old fields without yt.toml
         # Ionized hydrogen electrons
@@ -167,14 +213,17 @@ def _initialize_electron_number_density(ds):
 
         # Ionized metals electrons
         nEl_ion = np.zeros_like(nHII)
-        for element in metal_data:
-            if element == "Ca":  # No out of equilibrium information
-                continue
-            metal_name = metal_data[element]["name"]
-            nEl = data["gas", f"{metal_name}_density"] / metal_data[element]["mass"]
-            for ion in range(metal_data[element]["Nion"]):
-                xEl_ion = data["gas", f"{metal_name}_{ion + 1:02d}"]  # ["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
-                nEl_ion += ion * nEl * xEl_ion
+        if not primordial_only:
+            for element in metal_data:
+                if element == "Ca":  # No out of equilibrium information
+                    continue
+                metal_name = metal_data[element]["name"]
+                nEl = data["gas", f"{metal_name}_density"] / metal_data[element]["mass"]
+                for ion in range(metal_data[element]["Nion"]):
+                    xEl_ion = data[
+                        "gas", f"{metal_name}_{ion + 1:02d}"
+                    ]  # ["ramses", f"hydro_{metal_name}_{ion+1:02d}"]
+                    nEl_ion += ion * nEl * xEl_ion
 
         return nHII + nHeII + nHeIII + nEl_ion
 
@@ -212,7 +261,10 @@ def _initialize_mean_molecular_weight(ds):
 
         # NOTE: Not really the hydrogen number density, but the number of bound objects containing hydrogen
         #       Real nH is the total number density of hydrogen atoms (nH = nHI + nHII + 2*nH2)
-        nH = data["gas", "hydrogen_number_density"] * (xHI + xHII) + data["gas", "H2_number_density"]
+        nH = (
+            data["gas", "hydrogen_number_density"] * (xHI + xHII)
+            + data["gas", "H2_number_density"]
+        )
 
         nHe = data["gas", "helium_number_density"]
         nCO = data["gas", "CO_number_density"]
@@ -238,7 +290,13 @@ def _initialize_mean_molecular_weight(ds):
     )
 
 
-def create_chemistry_derived_fields(ds, molecules=True, electron_number_density=True, mean_molecular_weight=False):
+def create_chemistry_derived_fields(
+    ds,
+    molecules=True,
+    electron_number_density=True,
+    mean_molecular_weight=False,
+    ne_use_primordial_only=False,
+):
     """
     Initialize the derived fields for the chemistry module.
 
@@ -252,11 +310,15 @@ def create_chemistry_derived_fields(ds, molecules=True, electron_number_density=
         If True, include the electron number density field, needing the metal ion fractions. Default is True.
     mean_molecular_weight : bool, optional
         If True, include the mean molecular weight field, needing the CO, H2, and e number densities. Default is False.
+    ne_use_primordial_only : bool, optional
+        If True, the electron number density will only be calculated from primordial species only.
+        Otherwise, it will also include ionized metals. Default is False.
     """
 
     # Add fields for metal densities
     for element in metal_data:
         _initialize_metal_density(ds, element)
+        _initialize_ion_densities(ds, element)
 
     _initialize_metallicity(ds)
 
@@ -264,7 +326,7 @@ def create_chemistry_derived_fields(ds, molecules=True, electron_number_density=
         _initialize_primordial_density(ds, element)
 
     if electron_number_density:
-        _initialize_electron_number_density(ds)
+        _initialize_electron_number_density(ds, primordial_only=ne_use_primordial_only)
 
     if molecules:
         _initialize_H2(ds)
