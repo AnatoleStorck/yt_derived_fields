@@ -11,11 +11,13 @@
 # Author: Anatole Storck
 
 from yt import units as u
+from yt.funcs import mylog
 from yt.fields.field_detector import FieldDetector
 
 from pathlib import Path
 from roman import fromRoman
 import numpy as np
+from typing import Optional, Dict, Any
 
 from yt_derived_fields.megatron_derived_fields import (
     chemistry_derived_fields as chem_fields,
@@ -41,6 +43,24 @@ prim_data = {
 
 _spectral_data = Path(__file__).parent.parent / "spectral_utils"
 
+# Cache the dictionaries for faster access
+_COLL_LINE_DICT: Optional[Dict[str, Any]] = None
+_REC_LINE_DICT: Optional[Dict[str, Any]] = None
+
+def get_coll_line_dict(force_reload: bool = False) -> Dict[str, Any]:
+    global _COLL_LINE_DICT
+    if force_reload or _COLL_LINE_DICT is None:
+        mylog.info("Loading collision line dictionary from disk.")
+        _COLL_LINE_DICT = np.load(_spectral_data / "coll_line_dict.npy", allow_pickle=True).item()
+    return _COLL_LINE_DICT
+
+def get_rec_line_dict(force_reload: bool = False) -> Dict[str, Any]:
+    global _REC_LINE_DICT
+    if force_reload or _REC_LINE_DICT is None:
+        mylog.info("Loading recombination line dictionary from disk.")
+        _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
+    return _REC_LINE_DICT
+
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
@@ -60,9 +80,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
     if coll_lines is not None or all_lines:
-        coll_line_dict = np.load(f"{_spectral_data}/coll_line_dict.npy", allow_pickle=True).item()
+        coll_line_dict = get_coll_line_dict()
     if rec_lines is not None or all_lines:
-        rec_line_dict = np.load(f"{_spectral_data}/rec_line_dict.npy", allow_pickle=True).item()
+        rec_line_dict = get_rec_line_dict()
 
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
@@ -164,10 +184,14 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
         )
 
     if all_lines:
-        [coll_line(ds, line) for line in coll_line_dict.keys()]
-        [rec_line(ds, line) for line in rec_line_dict.keys()]
-    else:
-        for line in coll_lines:
+        for line in get_coll_line_dict().keys():
             coll_line(ds, line)
-        for line in rec_lines:
+        for line in get_rec_line_dict().keys():
             rec_line(ds, line)
+    else:
+        if coll_lines:
+            for line in coll_lines:
+                coll_line(ds, line)
+        if rec_lines:
+            for line in rec_lines:
+                rec_line(ds, line)
