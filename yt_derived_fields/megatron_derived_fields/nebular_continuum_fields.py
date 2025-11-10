@@ -55,7 +55,10 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
         note that this only considers recombination
         """
         # Load in the precomputed tables
-        dat = np.load("/mnt/glacier/DATA/pyneb_nebc_tables/neb_continuum.npy")
+        try: # glamdring
+            dat = np.load("/mnt/glacier/DATA/pyneb_nebc_tables/neb_continuum.npy")
+        except: # infinity
+            dat = np.load("/data100/cadiou/Megatron/DATA/pyneb_nebc_tables/neb_continuum.npy")
 
         # Set up the parameters
         temp = 10.0 ** np.arange(3.5, 4.477, 0.02)
