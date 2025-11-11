@@ -14,6 +14,8 @@
 from yt import units as u
 from yt.fields.field_detector import FieldDetector
 
+from yt_derived_fields.megatron_derived_fields import chemistry_derived_fields as chem_fields
+
 import numpy as np
 import pandas as pd
 
@@ -224,7 +226,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             nebc = pn.Continuum()
             wvls = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
             two_photon_generic = nebc.two_photon(1e4, 1, wvls)
-            two_phot_erg_s = np.trapezoid(two_photon_generic, wvls)
+            two_phot_erg_s = np.trapz(two_photon_generic, wvls)
 
             # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
             CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))
@@ -272,6 +274,9 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             display_name="Nebular Continuum Resolved Two Photon",
         )
 
+    # generate chemistry fields if not already present
+    if not ("gas", "electron_number_density") in ds.derived_field_list:
+        chem_fields.create_chemistry_derived_fields(ds)
     # Add the fields to the dataset
     nebc_resolved_recomb(ds)
     nebc_resolved_two_photon(ds)

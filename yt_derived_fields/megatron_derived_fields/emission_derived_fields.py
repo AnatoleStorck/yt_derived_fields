@@ -25,12 +25,8 @@ from typing import Dict, Any
 
 from yt_derived_fields.megatron_derived_fields import (
     chemistry_derived_fields as chem_fields,
+    chemistry_data as chem_data,
 )
-from yt_derived_fields.megatron_derived_fields import (
-    chemistry_derived_fields as chem_fields,
-)
-
-import chemistry_data as chem_data
 
 met_data = chem_data.get_metal_data()
 prim_data = chem_data.get_prim_data()
