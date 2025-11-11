@@ -5,25 +5,21 @@
 # TODO: Add the ability to generate spectra for a given cell
 # (set everything to zero then add the spectra of the stars in that cell)
 
-import numpy as np
-
-from yt_derived_fields.spectral_utils import pop2_stellar_spectra
-from yt_derived_fields.spectral_utils import pop3_stellar_spectra
 import yt_derived_fields.megatron_derived_fields.stars_derived_fields as stars_derived_fields
 
-
 def _initialize_pop2_spectra(ds) -> None:
-                
+
     fname = ds.add_deposited_particle_field(
-        ("pop2", "spectra"), method="sum"
+        ("pop2", "spectra"), method="sum", vector_field=True
     )
     print(f"Pop. II spectra field added: {fname}")
 
 
 def _initialize_pop3_spectra(ds):
-        
+    if ("pop3", "spectra") not in ds.derived_field_list:
+        return
     fname = ds.add_deposited_particle_field(
-        ("pop3", "spectra"), method="sum"
+        ("pop3", "spectra"), method="sum", vector_field=True
     )
     print(f"Pop. III spectra field added: {fname}")
 
