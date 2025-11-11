@@ -109,9 +109,9 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             electron_density = data["gas", "electron_number_density"].to("cm**-3").value
 
             # Get the ionized hydrogen density
-            HII_density = nH * data["gas", "hydrogen_02"]
-            HeII_density = nHe * data["gas", "helium_02"]
-            HeIII_density = nHe * data["gas", "helium_03"]
+            HII_density = (nH * data["gas", "hydrogen_02"]).value
+            HeII_density = (nHe * data["gas", "helium_02"]).value
+            HeIII_density = (nHe * data["gas", "helium_03"]).value
 
             # Downweight temperatures that are too high
             temperatures = data["gas", "temperature"].to("K").value
@@ -161,38 +161,23 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
 
             nebc_interp = generate_pyneb_nebc_interp(downsample, ds_nwv)
 
-            def parallel_interp(
-                nebc_interp,
-                to_interpolate,
-                cell_volumes,
-                electron_density,
-                HII_density,
-                T_rescale,
-            ):
-                return (
-                    (
-                        ((nebc_interp(to_interpolate) * cell_volumes[:, None]) * electron_density[:, None])
-                        * HII_density[:, None]
-                    )
-                    * T_rescale[:, None]
-                ).sum(axis=0)
+
+            ### Parallelize the interpolation step ###
+
+            # Determine the number of wavelengths from the interpolator output
+            test_shape = nebc_interp(to_interpolate[:1]).shape[-1]
+            results = np.zeros((len(nH), test_shape))  # shape: (N_cells, N_wavelengths)
+            print(f"Interpolating nebular continuum for {len(nH)} cells over {test_shape} wavelengths...")
 
             # Chunk the data for efficient parallelization
             all_c1 = [i * n_batch for i in range(1 + len(to_interpolate) // n_batch)]
             all_c2 = [c1 + n_batch for c1 in all_c1]
             all_c2[-1] = len(to_interpolate)
-
             # Calculate the number of CPUs to use
             n_cpus = min(
                 len(all_c1), ncpu_max
             )  # Set the maximum number of CPUs to 10 (but no more than the number of batches)
-
-            # Get the results in parallel
-            print(f"Interpolating nebular continuum for {len(nH)} cells")
-            # Determine the number of wavelengths from the interpolator output
-            test_shape = nebc_interp(to_interpolate[:1]).shape[-1]
-            results = np.zeros((len(nH), test_shape))  # shape: (N_cells, N_wavelengths)
-
+            # Define the batch interpolation function
             def batch_interp(c1, c2):
                 return (
                     nebc_interp(to_interpolate[c1:c2, :])
@@ -201,12 +186,12 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
                     * HII_density[c1:c2, None]
                     * T_rescale[c1:c2, None]
                 )
-
+            from tqdm import tqdm
             # Parallelize over batches
             batch_results = Parallel(n_jobs=n_cpus)(
-                delayed(batch_interp)(all_c1[i], all_c2[i]) for i in range(len(all_c1))
+                delayed(batch_interp)(all_c1[i], all_c2[i]) for i in tqdm(range(len(all_c1)))
             )
-
+            print("Interpolation complete.")
             # Fill results array
             for i, batch_result in enumerate(batch_results):
                 results[all_c1[i] : all_c2[i], :] = batch_result
@@ -214,6 +199,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             # NOTE: THIS COMBINES ALL THE CELLS TOGETHER
             # nebc_spec = np.array(results).sum(axis=0)
 
+            # RETURN THE SPECTRUM PER CELL
             nebc_spec = np.array(results) * u.erg / u.s
 
             return nebc_spec
