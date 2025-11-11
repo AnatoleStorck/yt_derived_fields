@@ -9,7 +9,7 @@ from yt import units as u
 import numpy as np
 from roman import toRoman
 
-import chemistry_data as chem_data
+from . import chemistry_data as chem_data
 
 metal_data = chem_data.get_metal_data()
 prim_data = chem_data.get_prim_data()
