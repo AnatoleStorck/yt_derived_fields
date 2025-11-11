@@ -69,6 +69,7 @@ The functionality is ever-expanding, here are a few examples of what is currentl
       chemistry_derived_fields as chem_fields,
       cooling_derived_fields as cool_fields,
       stars_derived_fields as star_fields,
+      emission_derived_fields as emiss_fields,
    )
 
    ds = yt.load(<path_to_your_favorite_megatron_output>)
