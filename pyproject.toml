@@ -10,13 +10,14 @@ license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Anatole Storck", email = "storckanatole@gmail.com" },
+    { name = "Corentin Cadiou", email = "corentin.cadiou@iap.fr" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-    "yt>=4.1.0",
+    "yt>=4.3.0",
     "roman",
     "pyneb",
     "ChiantiPy",
@@ -24,6 +25,7 @@ dependencies = [
     "joblib",
     "numpy",
     "unyt",
+    "numexpr",
 ]
 
 
