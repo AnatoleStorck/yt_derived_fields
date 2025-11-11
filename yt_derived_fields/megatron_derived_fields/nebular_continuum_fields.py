@@ -70,6 +70,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
         nebc_interp = RegularGridInterpolator((temp, den, HeI_frac, HeII_frac), dat)
 
         # downsample?
+        # The pyneb data is at 1A resolution by default
         if downsample:
             wvls_ds = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
 
@@ -237,7 +238,7 @@ def get_nebular_continuum(ds, lmin=1150, lmax=10000, downsample=True, ds_nwv=5, 
             nebc = pn.Continuum()
             wvls = wavelength_space(downsample=downsample, ds_nwv=ds_nwv)
             two_photon_generic = nebc.two_photon(1e4, 1, wvls)
-            two_phot_erg_s = np.trapz(two_photon_generic, wvls)
+            two_phot_erg_s = np.trapezoid(two_photon_generic, wvls)
 
             # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
             CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))
