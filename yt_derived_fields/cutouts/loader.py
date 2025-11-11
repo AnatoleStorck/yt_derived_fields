@@ -1,13 +1,15 @@
+from enum import Enum
 from pathlib import Path
 
+import numexpr as ne
 import numpy as np
+import pooch
 import unyt
 import yt
 from scipy.io import FortranFile
-from yt_experiments.octree.converter import OctTree
-from enum import Enum
 from tqdm import tqdm
-import numexpr as ne
+from yt_experiments.octree.converter import OctTree
+
 from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import metal_data
 
 
@@ -125,11 +127,27 @@ header: list[tuple[str, Scale, str]] = [
 ]
 
 
-def load_cutout(filename: str | Path, boxsize: unyt.unyt_quantity, h0: float = 0.6727, verbose: bool = True):
-    filename = Path(filename)
+def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, verbose: bool = True):
+    """Load a Megatron cutout file as a yt dataset.
+
+    Parameters
+    ----------
+    filename : str | Path | url
+        Path to the cutout file. If a URL, it will be downloaded using pooch.
+    boxsize : boxsize in Mpccm/h
+        The boxsize of the original simulation in comoving Mpc/h. Default is 50.
+    h0 : float
+        The Hubble constant of the original simulation. Default is 0.6727.
+    verbose : bool
+        Whether to show a progress bar when loading the data. Default is True.
+    """
+    original_path = path = Path(filename)
+
+    if not path.exists():
+        path = Path(pooch.retrieve(str(filename), known_hash=None))
 
     data = {}
-    with FortranFile(filename, "r") as ff:
+    with FortranFile(path, "r") as ff:
         prog = tqdm if verbose and yt.is_root() else lambda x, *args, **kwargs: x
         for name, scale, _unit in prog(header, desc="Loading cutout"):
             # Read in the quantity
@@ -145,7 +163,7 @@ def load_cutout(filename: str | Path, boxsize: unyt.unyt_quantity, h0: float = 0
     aexp = 1 / (1 + redshift)
 
     # Create a unyt registry
-    boxsize_physical = boxsize * aexp / h0
+    boxsize_physical = boxsize * unyt.Mpc * aexp / h0
     registry = unyt.UnitRegistry()
 
     # Get xc (no need for unit conversion thus)
@@ -195,7 +213,7 @@ def load_cutout(filename: str | Path, boxsize: unyt.unyt_quantity, h0: float = 0
         data=data,
         bbox=np.array([left_edge, right_edge]).T,
         num_zones=1,
-        dataset_name=f"Cutout/{filename.name}",
+        dataset_name=original_path.name,
         parameters=params,
         length_unit=boxsize_physical,
     )
