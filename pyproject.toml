@@ -18,6 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "yt>=4.3.0",
+    "yt_experiments>=0.3.0",
     "roman",
     "pyneb",
     "ChiantiPy",
