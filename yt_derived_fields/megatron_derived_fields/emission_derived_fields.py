@@ -23,6 +23,7 @@ from yt.funcs import mylog
 
 from yt_derived_fields.megatron_derived_fields import (
     chemistry_derived_fields as chem_fields,
+    chemistry_data as chem_data,
 )
 
 _spectral_data = Path(__file__).parent.parent / "spectral_utils"
