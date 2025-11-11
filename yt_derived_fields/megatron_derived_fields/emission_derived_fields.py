@@ -14,7 +14,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import chemistry_data as chem_data
+from yt_derived_fields.megatron_derived_fields import chemistry_data as chem_data
+
 import numpy as np
 from roman import fromRoman
 from yt import units as u
