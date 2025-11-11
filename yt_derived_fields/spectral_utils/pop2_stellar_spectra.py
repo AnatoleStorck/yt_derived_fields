@@ -44,9 +44,14 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
     ages = 10.0 ** (6.0 + 0.1 * np.arange(51))
 
     # Load in the first array
-    dat = np.load(
-        f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{metal_names[0]}.dat.npy"
-    ).T
+    try:
+        dat = np.load(
+            f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{metal_names[0]}.dat.npy"
+        ).T
+    except:
+        dat = np.load(
+            f"/data100/cadiou/Megatron/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{metal_names[0]}.dat.npy"
+        ).T
 
     # Setup the array that contains all of the spectral data
     n_metals = len(metal_names)
@@ -57,7 +62,10 @@ def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
     all_spec[0, :, :] = dat
 
     for i, m in enumerate(metal_names[1:]):
-        dat = np.load(f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{m}.dat.npy").T
+        try:
+            dat = np.load(f"/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{m}.dat.npy").T
+        except:
+            dat = np.load(f"/data100/cadiou/Megatron/DATA/bpass_v2.2.1_imf_chab300/reduced_spectra-bin-imf_chab300.{m}.dat.npy").T
         all_spec[i + 1, :, :] = dat
 
     popII_interp = RegularGridInterpolator((metal_vals, ages), all_spec)

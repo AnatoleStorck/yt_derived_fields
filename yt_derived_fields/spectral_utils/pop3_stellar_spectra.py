@@ -20,8 +20,12 @@ def generate_pop_III_spec_interp(lmin, lmax, downsample, ds_nwv):
     Units are erg/s/A
     """
     # Load in the data and spectrum properties
-    dat = np.load("/mnt/glacier/DATA/Pop_III_spectra/reduced_popiii_spec.npy")
-    props = pd.read_csv("/mnt/glacier/DATA/Pop_III_spectra/model_params.dat")
+    try:
+        dat = np.load("/mnt/glacier/DATA/Pop_III_spectra/reduced_popiii_spec.npy")
+        props = pd.read_csv("/mnt/glacier/DATA/Pop_III_spectra/model_params.dat")
+    except:
+        dat = np.load("/data100/cadiou/Megatron/DATA/Pop_III_spectra/reduced_popiii_spec.npy")
+        props = pd.read_csv("/data100/cadiou/Megatron/DATA/Pop_III_spectra/model_params.dat")
 
     # Interpolate the spectra over mass
     popIII_interp = RegularGridInterpolator((np.array(props["Mass_Msol"]),), dat)
