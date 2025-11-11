@@ -162,7 +162,7 @@ def create_cooling_derived_fields(ds, H2_cooling="moseley"):
     _initialize_photoheating_heating(ds)
 
     if H2_cooling is not None:
-        chemistry_fields.create_chemistry_derived_fields(ds, electron_number_density=False, mean_molecular_weight=False)
+        # chemistry_fields.create_chemistry_derived_fields(ds, electron_number_density=False, mean_molecular_weight=False)
 
         if H2_cooling == "moseley":
             H2_cooling_func = _cooling_H2_moseley

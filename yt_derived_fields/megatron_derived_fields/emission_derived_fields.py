@@ -10,34 +10,36 @@
 
 # Author: Anatole Storck
 
-from yt import units as u
-from yt.funcs import mylog
-from yt.fields.field_detector import FieldDetector
-
-from pathlib import Path
-_spectral_data = Path(__file__).parent.parent / "spectral_utils"
-
 from functools import cache
+from pathlib import Path
+from typing import Any
 
-from roman import fromRoman
+import chemistry_data as chem_data
 import numpy as np
-from typing import Dict, Any
+from roman import fromRoman
+from yt import units as u
+from yt.fields.field_detector import FieldDetector
+from yt.funcs import mylog
 
 from yt_derived_fields.megatron_derived_fields import (
     chemistry_derived_fields as chem_fields,
     chemistry_data as chem_data,
 )
 
+_spectral_data = Path(__file__).parent.parent / "spectral_utils"
 met_data = chem_data.get_metal_data()
 prim_data = chem_data.get_prim_data()
 
+
 @cache
-def get_coll_line_dict() -> Dict[str, Any]:
+def get_coll_line_dict() -> dict[str, Any]:
     mylog.info("Loading collision line dictionary from disk.")
     _COLL_LINE_DICT = np.load(_spectral_data / "coll_line_dict.npy", allow_pickle=True).item()
     return _COLL_LINE_DICT
+
+
 @cache
-def get_rec_line_dict() -> Dict[str, Any]:
+def get_rec_line_dict() -> dict[str, Any]:
     mylog.info("Loading recombination line dictionary from disk.")
     _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
     return _REC_LINE_DICT
@@ -67,14 +69,13 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
 
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
-        def _get_coll_line_lum(field, data):
+        def _get_coll_line_emissivity(field, data):
             nCells = len(data["gas", "density"].to("g/cm**3").value)
             rho = data["gas", "density"].to("g/cm**3").value
 
             Tgas = np.log10(data["gas", "temperature"].to("K").value)
 
             ne = data["gas", "electron_number_density"].to("cm**-3").value
-            cell_vol = data["gas", "volume"].to("cm**3").value
 
             # ----------------------------------------------------------
 
@@ -98,10 +99,19 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             # Multiply by the electron density and ion density
             # n{el} = nO, ion = O_IV
             loc_emis *= ne * nel * xion
-            loc_lum = loc_emis * cell_vol  # erg/s
 
-            return loc_lum * u.erg / u.s
+            return loc_emis * u.erg / u.s / u.cm**3
 
+        def _get_coll_line_lum(field, data):
+            return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
+
+        ds.add_field(
+            name=("gas", f"{line}_emissivity"),
+            function=_get_coll_line_emissivity,
+            units="erg/s/cm**3",
+            sampling_type="cell",
+            display_name=f"{line} Emissivity",
+        )
         ds.add_field(
             name=("gas", f"{line}_luminosity"),
             function=_get_coll_line_lum,
@@ -112,14 +122,13 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
 
     # line in the form of "Lya", "Hb", "He-1640"
     def rec_line(ds, line):
-        def _get_rec_line_lum(field, data):
+        def _get_rec_line_emissivity(field, data):
             nCells = len(data["gas", "density"].to("g/cm**3").value)
             rho = data["gas", "density"].to("g/cm**3").value
 
             Tgas = np.log10(data["gas", "temperature"].to("K").value)
 
             ne = data["gas", "electron_number_density"].to("cm**-3").value
-            cell_vol = data["gas", "volume"].to("cm**3").value
 
             # ----------------------------------------------------------
 
@@ -151,10 +160,21 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
             loc_col_emis = rec_line_dict[line]["emis_grid_col"](to_interp_ch)
             loc_col_emis *= ne * nel * xion_col  # NOTE * df_gas[f"{el}_dep"]
 
-            loc_rec_lum = loc_rec_emis * cell_vol  # erg/s
-            loc_col_lum = loc_col_emis * cell_vol  # erg/s
+            loc_rec_lum = loc_rec_emis  # erg/s/cm^3
+            loc_col_lum = loc_col_emis  # erg/s/cm^3
 
-            return (loc_rec_lum + loc_col_lum) * u.erg / u.s
+            return (loc_rec_lum + loc_col_lum) * u.erg / u.s / u.cm**3
+
+        def _get_rec_line_lum(field, data):
+            return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
+
+        ds.add_field(
+            name=("gas", f"{line}_emissivity"),
+            function=_get_rec_line_emissivity,
+            units="erg/s/cm**3",
+            sampling_type="cell",
+            display_name=f"{line} Emissivity",
+        )
 
         ds.add_field(
             name=("gas", f"{line}_luminosity"),

@@ -88,6 +88,13 @@ e_densities = np.logspace(-7, 6, n_vals)
 # Metalic transitions database
 coll_line_dict = {
     # Carbon
+    "C2-158um": {
+        "ion": "C_II",
+        "atom": pyneb_atoms["C2"],
+        "lev_u": 2,
+        "lev_d": 1,
+        "e_weight": element_weights["C"],
+    },
     "C3-1908": {
         "ion": "C_III",
         "atom": pyneb_atoms["C3"],
@@ -117,6 +124,13 @@ coll_line_dict = {
         "e_weight": element_weights["C"],
     },
     # Oxygen
+    "O1-6300": {
+        "ion": "O_I",
+        "atom": pyneb_atoms["O1"],
+        "lev_u": 4,
+        "lev_d": 1,
+        "e_weight": element_weights["O"],
+    },
     "O1-6300": {
         "ion": "O_I",
         "atom": pyneb_atoms["O1"],
@@ -171,6 +185,13 @@ coll_line_dict = {
         "atom": pyneb_atoms["O2"],
         "lev_u": 5,
         "lev_d": 3,
+        "e_weight": element_weights["O"],
+    },
+    "O3-88um": {
+        "ion": "O_III",
+        "atom": pyneb_atoms["O3"],
+        "lev_u": 2,
+        "lev_d": 1,
         "e_weight": element_weights["O"],
     },
     "O3-4959": {
