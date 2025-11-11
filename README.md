@@ -34,6 +34,25 @@ The functionality is ever-expanding, here are a few examples of what is currentl
 - INCOMING: Corrections for unresolved stromgren spheres.
 - INCOMING: Ability to generate IFU spectra using bins of cells.
 
+## Loading cutouts
+
+Cutouts generated for the Megatron simulations can be read using `yt_derived_fields.cutouts.loader.load_cutout` as follows:
+
+```python
+from yt_derived_fields.cutouts.loader import load_cutout
+import unyt as u
+import yt
+
+ds = load_cutout("MEGATRON_CP_NEW/halo_cutouts/output_00094/halo_3378_gas.bin", boxsize=50 * u.Mpc)
+
+# Due to the way data are loaded, we'll have *many* nans (in regions where no data were saved)
+# Let's filter them out
+ad = ds.all_data().exclude_nan(("gas", "density"))
+
+p = yt.ProjectionPlot(ds, "x", ("gas", "density"), data_source=ad, center=ds.domain_center, width=(20, "kpc"))
+p.save()
+```
+
 ## How to use
 
 1. Install yt:
