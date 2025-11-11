@@ -15,56 +15,41 @@ from yt.funcs import mylog
 from yt.fields.field_detector import FieldDetector
 
 from pathlib import Path
-from roman import fromRoman
-import numpy as np
-from typing import Optional, Dict, Any
-
-from yt_derived_fields.megatron_derived_fields import (
-    chemistry_derived_fields as chem_fields,
-)
-from yt_derived_fields.megatron_derived_fields import (
-    chemistry_derived_fields as chem_fields,
-)
-
-met_data = {
-    "O": {"name": "oxygen", "mass": 15.9994 * u.amu, "Nion": 8},
-    "Ne": {"name": "neon", "mass": 20.1797 * u.amu, "Nion": 10},
-    "C": {"name": "carbon", "mass": 12.0107 * u.amu, "Nion": 6},
-    "S": {"name": "sulfur", "mass": 32.065 * u.amu, "Nion": 11},
-    "Mg": {"name": "magnesium", "mass": 24.305 * u.amu, "Nion": 10},
-    "Si": {"name": "silicon", "mass": 28.0855 * u.amu, "Nion": 11},
-    "N": {"name": "nitrogen", "mass": 14.0067 * u.amu, "Nion": 7},
-    "Fe": {"name": "iron", "mass": 55.854 * u.amu, "Nion": 11},
-}
-prim_data = {
-    "H": {"name": "hydrogen", "mass": 1.00784 * u.amu, "massFrac": 0.76},
-    "He": {"name": "helium", "mass": 4.002602 * u.amu, "massFrac": 0.24},
-}
-
 _spectral_data = Path(__file__).parent.parent / "spectral_utils"
 
-# Cache the dictionaries for faster access
-_COLL_LINE_DICT: Optional[Dict[str, Any]] = None
-_REC_LINE_DICT: Optional[Dict[str, Any]] = None
+from functools import cache
 
-def get_coll_line_dict(force_reload: bool = False) -> Dict[str, Any]:
-    global _COLL_LINE_DICT
-    if force_reload or _COLL_LINE_DICT is None:
-        mylog.info("Loading collision line dictionary from disk.")
-        _COLL_LINE_DICT = np.load(_spectral_data / "coll_line_dict.npy", allow_pickle=True).item()
+from roman import fromRoman
+import numpy as np
+from typing import Dict, Any
+
+from yt_derived_fields.megatron_derived_fields import (
+    chemistry_derived_fields as chem_fields,
+)
+from yt_derived_fields.megatron_derived_fields import (
+    chemistry_derived_fields as chem_fields,
+)
+
+import chemistry_data as chem_data
+
+met_data = chem_data.get_metal_data()
+prim_data = chem_data.get_prim_data()
+
+@cache
+def get_coll_line_dict() -> Dict[str, Any]:
+    mylog.info("Loading collision line dictionary from disk.")
+    _COLL_LINE_DICT = np.load(_spectral_data / "coll_line_dict.npy", allow_pickle=True).item()
     return _COLL_LINE_DICT
-
-def get_rec_line_dict(force_reload: bool = False) -> Dict[str, Any]:
-    global _REC_LINE_DICT
-    if force_reload or _REC_LINE_DICT is None:
-        mylog.info("Loading recombination line dictionary from disk.")
-        _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
+@cache
+def get_rec_line_dict() -> Dict[str, Any]:
+    mylog.info("Loading recombination line dictionary from disk.")
+    _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
     return _REC_LINE_DICT
 
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
-    Add emission line luminosity fields to the dataset.
+    Add emission line luminosity fields to the dataset, given line emissivity grids have been generated on disk.
 
     Args:
         ds (yt.Dataset): The dataset object.

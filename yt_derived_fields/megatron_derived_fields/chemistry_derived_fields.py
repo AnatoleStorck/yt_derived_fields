@@ -1,35 +1,18 @@
 # Generating derived fields for the chemistry module
 # NOTE: for the MEGATRON simulations ran with RAMSES-RTZ
 
-# TODO: Fix iron_fraction ("ramse", "Metallicity") in YT TOML file for MEGATRON
+# TODO: Fix iron_fraction ("ramses", "Metallicity") in YT TOML file for MEGATRON
 
 # Author: Anatole Storck
 
 from yt import units as u
 import numpy as np
 
-# NOTE: Nion is the number of ionization
-#       states tracked in MEGATRON
-metal_data = {
-    "O": {"name": "oxygen", "mass": 15.9994 * u.amu, "Nion": 8},
-    "Ne": {"name": "neon", "mass": 20.1797 * u.amu, "Nion": 10},
-    "C": {"name": "carbon", "mass": 12.0107 * u.amu, "Nion": 6},
-    "S": {"name": "sulfur", "mass": 32.065 * u.amu, "Nion": 11},
-    "Mg": {"name": "magnesium", "mass": 24.305 * u.amu, "Nion": 10},
-    "Si": {"name": "silicon", "mass": 28.0855 * u.amu, "Nion": 11},
-    "N": {"name": "nitrogen", "mass": 14.0067 * u.amu, "Nion": 7},
-    "Fe": {"name": "iron", "mass": 55.854 * u.amu, "Nion": 11},
-    "Ca": {"name": "calcium", "mass": 40.078 * u.amu, "Nion": 0},
-}
-prim_data = {
-    "H": {"name": "hydrogen", "mass": 1.007947 * u.amu, "Nion": 2, "massFrac": 0.76},
-    "He": {"name": "helium", "mass": 4.002602 * u.amu, "Nion": 3, "massFrac": 0.24},
-}
-molec_data = {
-    "H2": {"name": "molecular hydrogen", "mass": 2.01588 * u.amu},
-    "CO": {"name": "carbon monoxide", "mass": (15.9994 + 12.0107) * u.amu},
-}
+import chemistry_data as chem_data
 
+metal_data = chem_data.get_metal_data()
+prim_data = chem_data.get_prim_data()
+molec_data = chem_data.get_molec_data()
 
 def _initialize_metal_density(ds, element: str):
     metal_name = metal_data[element]["name"]
@@ -78,6 +61,16 @@ def _initialize_metallicity(ds):
         sampling_type="cell",
         display_name="Metallicity",
     )
+    # Attempt to override old field if exists
+    if ("gas", "metallicity") in ds.field_list:
+        ds.add_field(
+            name=("gas", "metallicity"),
+            function=_metallicity,
+            units="1",
+            sampling_type="cell",
+            display_name="Metallicity",
+            force_override=True,
+        )
 
 
 def _initialize_primordial_density(ds, element):
