@@ -168,7 +168,7 @@ def _initialize_pop2_spectra(ds):
     ds.add_field(
         name=("pop2", "spectra"),
         function=pop2_spectra,
-        force_override=True,
+        #force_override=True,
         units="erg/s",
         sampling_type="particle",
         vector_field=True,
@@ -186,7 +186,7 @@ def _initialize_pop3_spectra(ds):
     ds.add_field(
         name=("pop3", "spectra"),
         function=pop3_spectra,
-        force_override=True,
+        #force_override=True,
         units="erg/s",
         sampling_type="particle",
         vector_field=True,

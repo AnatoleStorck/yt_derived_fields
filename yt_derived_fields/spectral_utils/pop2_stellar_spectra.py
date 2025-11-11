@@ -4,6 +4,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from scipy.interpolate import RegularGridInterpolator
 
+from functools import cache
+
 import unyt as u
 
 
@@ -13,8 +15,8 @@ def wavelength_space(lmin, lmax, downsample, ds_nwv):
         wvls = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
     return wvls
 
-
 # BPASS (v2.2.1) spectra (interpolated over metallicity and age)
+@cache
 def generate_pop_II_spec_interp(lmin, lmax, downsample, ds_nwv):
     """
     Function that loads and returns an interpolating function for the pop II spectra
@@ -130,6 +132,14 @@ def get_pop_2_spectrum(
     # Get a list of initial masses
     initial_masses = data["pop2", "particle_initial_mass"].to("Msun").value
 
+    # Don't parallelize for small numbers of particles
+    if N_pop2 <= 1e5:
+        # If there are few particles, do not parallelize
+        p2_spec = spec_interp_p2(to_interp) * initial_masses[:, None]
+        if combined:
+            p2_spec = p2_spec.sum(axis=0)
+        return p2_spec * u.erg / u.s
+
     # Chunk the data for efficient parallelization
     all_c1 = [i * n_batch for i in range(1 + len(to_interp) // n_batch)]
     all_c2 = [c1 + n_batch for c1 in all_c1]
@@ -146,7 +156,8 @@ def get_pop_2_spectrum(
 
     # TODO: Check that the order of batch results is the same as the order of to_interp
     # Parallelize over batches
-    batch_results = Parallel(n_jobs=n_cpus)(delayed(batch_interp)(all_c1[i], all_c2[i]) for i in range(len(all_c1)))
+    from tqdm import tqdm
+    batch_results = Parallel(n_jobs=n_cpus)(delayed(batch_interp)(all_c1[i], all_c2[i]) for i in tqdm(range(len(all_c1))))
 
     # Fill results array
     for i, batch_result in enumerate(batch_results):
