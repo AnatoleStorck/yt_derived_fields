@@ -4,8 +4,6 @@
 # NOTE: which H2 cooling function depends on the specific run! (ask people idk lol)
 #       MEGATRON_OG uses H2GP while MEGATRON_SF uses Moseley (maybe idk lol)
 
-# TODO: Introduce the YT TOML file for MEGATRON, and set the fields to "gas" instead of "ramses"
-
 # Author: Anatole Storck
 
 from yt import units as u
@@ -15,7 +13,7 @@ import numpy as np
 
 
 # Converted from coolrates_module.f90
-def cooling_H2_moseley(nH, nH2, Tgas):
+def _cooling_H2_moseley(nH, nH2, Tgas):
     T3 = 1e-3 * Tgas
 
     n1 = 50.0
@@ -44,7 +42,7 @@ def cooling_H2_moseley(nH, nH2, Tgas):
 
 
 # Converted from coolrates_module.f90
-def cooling_H2GP(nH, nH2, Tgas):
+def _cooling_H2GP(nH, nH2, Tgas):
     # cooling from Galli&Palla98
     # taken from krome
 
@@ -80,11 +78,11 @@ def cooling_H2GP(nH, nH2, Tgas):
 def _initialize_metal_cooling(ds):
     def _metal_cooling(field, data):
         return (
-            data["ramses", "hydro_cooling_rate"]
-            - data["ramses", "hydro_cooling_primordial"]
-            - data["ramses", "hydro_cooling_dust_rec"]
-            - data["ramses", "hydro_cooling_dust"]
-            - data["ramses", "hydro_cooling_CO"]
+            data["gas", "cooling_rate"]
+            - data["gas", "cooling_primordial"]
+            - data["gas", "cooling_dust_rec"]
+            - data["gas", "cooling_dust"]
+            - data["gas", "cooling_CO"]
         )
 
     ds.add_field(
@@ -104,10 +102,10 @@ def _initialize_photoheating_heating(ds):
         else:
             cr_heating = data["ramses", "hydro_heating_cr"]
         return (
-            data["ramses", "hydro_heating_rate"]
-            - data["ramses", "hydro_heating_h2"]
-            - data["ramses", "hydro_heating_pe"]
-            - data["ramses", "hydro_heating_ct"]
+            data["gas", "heating_rate"]
+            - data["gas", "heating_h2"]
+            - data["gas", "heating_pe"]
+            - data["gas", "heating_ct"]
             - cr_heating
         )
 
@@ -167,9 +165,9 @@ def create_cooling_derived_fields(ds, H2_cooling="moseley"):
         chemistry_fields.create_chemistry_derived_fields(ds, electron_number_density=False, mean_molecular_weight=False)
 
         if H2_cooling == "moseley":
-            H2_cooling_func = cooling_H2_moseley
+            H2_cooling_func = _cooling_H2_moseley
         elif H2_cooling == "H2GP":
-            H2_cooling_func = cooling_H2GP
+            H2_cooling_func = _cooling_H2GP
         else:
             raise ValueError("Invalid H2 cooling model specified.")
         _initialize_H2_cooling(ds, H2_cooling_func)
