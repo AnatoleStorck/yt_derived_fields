@@ -11,16 +11,16 @@ from yt_derived_fields.spectral_utils import pop2_stellar_spectra
 from yt_derived_fields.spectral_utils import pop3_stellar_spectra
 
 
-def create_star_derived_fields(ds, pop3=True):
+def create_star_derived_fields(ds, pop3=False):
     _initialize_star_age(ds)
 
     _initialize_pop2_star_filter(ds)
-    _initialize_pop2_spectra(ds)
+    _initialize_pop2_spectral_fields(ds)
 
     if pop3:
         _initialize_pop3_star_filter(ds)
         _initialize_pop3_aliveStatus(ds)
-        _initialize_pop3_spectra(ds)
+        _initialize_pop3_spectral_fields(ds)
 
 
 def _initialize_star_age(ds):
@@ -37,7 +37,7 @@ def _initialize_star_age(ds):
     cosmology.ct_init_cosmo(
         omega_m=ds.cosmology.omega_matter,  # 0.313899993896484E+00,
         omega_l=ds.cosmology.omega_lambda,  # 0.686094999313354E+00,
-        omega_k=0.500679016113281e-05,  # ds.cosmology.omega_curvature (wrong)
+        omega_k=1.0 - (ds.cosmology.omega_matter + ds.cosmology.omega_lambda),  # 0.000005006690140E+00, (ds.cosmology.omega_curvature is wrong),
         h0=ds.hubble_constant * 100,  # h0 should be the H0 (not reduced)
     )
 
@@ -49,7 +49,7 @@ def _initialize_star_age(ds):
 
     def _star_age(field, data):
         # Birth time of the star particle
-        # NOTE: while the field mentions conformal time, it is actually the proper time for RT sims
+        # NOTE: while the field mentions conformal time, it is actually the proper time for RT sims (At least in MEGATRON)
         star_birth_time_proper = data["star", "conformal_birth_time"].value
 
         # Convert from proper time to time
@@ -158,8 +158,8 @@ def _initialize_pop3_aliveStatus(ds):
     )
 
 
-def _initialize_pop2_spectra(ds):
-    def pop2_spectra(field, data):
+def _initialize_pop2_spectral_fields(ds):
+    def _pop2_spectra(field, data):
 
         pop2_spec = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=False)
 
@@ -167,7 +167,7 @@ def _initialize_pop2_spectra(ds):
 
     ds.add_field(
         name=("pop2", "spectra"),
-        function=pop2_spectra,
+        function=_pop2_spectra,
         #force_override=True,
         units="erg/s",
         sampling_type="particle",
@@ -175,7 +175,7 @@ def _initialize_pop2_spectra(ds):
         display_name="Pop. II Star Spectra",
     )
 
-    def pop2_spectra_combined(field, data):
+    def _pop2_spectra_combined(field, data):
 
         pop2_spec_combined = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=True)
 
@@ -183,17 +183,34 @@ def _initialize_pop2_spectra(ds):
 
     ds.add_field(
         name=("pop2", "spectra_combined"),
-        function=pop2_spectra_combined,
+        function=_pop2_spectra_combined,
         #force_override=True,
         units="erg/s",
         sampling_type="particle",
-        vector_field=False,
+        vector_field=True,
         display_name="Pop. II Combined Star Spectra",
     )
 
 
-def _initialize_pop3_spectra(ds):
-    def pop3_spectra(field, data):
+    # An attempt to generate a spectra per cell. The idea is to check the stars in
+    # each cell and assign them the summed stellar spectra. In practice, one would
+    # want to use this on bins of cells, such as to create an IFU with a regular grid.
+    # This would also reduce the memory overhead, as assigning a spectra per cell
+    # over millions of cells is quite memory intensive.
+
+    # TODO: Currently the deposition method works on the fluid grid. I need to check
+    #       if it is possible to deposit on a different grid, such as a regular (coarser) grid,
+    #       and if it is possible to project the regular grid into an IFU datacube,
+    #       both on and off axis.
+    def _deposit_pop2_spectra(ds) -> None:
+
+        fname = ds.add_deposited_particle_field(
+            ("pop2", "spectra"), method="sum", vector_field=True
+        )
+
+
+def _initialize_pop3_spectral_fields(ds):
+    def _pop3_spectra(field, data):
 
         pop3_spec = pop3_stellar_spectra.get_pop_3_spectrum(data, combined=False)
 
@@ -201,7 +218,7 @@ def _initialize_pop3_spectra(ds):
 
     ds.add_field(
         name=("pop3", "spectra"),
-        function=pop3_spectra,
+        function=_pop3_spectra,
         #force_override=True,
         units="erg/s",
         sampling_type="particle",
@@ -209,7 +226,7 @@ def _initialize_pop3_spectra(ds):
         display_name="Pop. III Star Spectra",
     )
 
-    def pop3_spectra_combined(field, data):
+    def _pop3_spectra_combined(field, data):
 
         pop3_spec_combined = pop3_stellar_spectra.get_pop_3_spectrum(data, combined=True)
 
@@ -217,10 +234,16 @@ def _initialize_pop3_spectra(ds):
 
     ds.add_field(
         name=("pop3", "spectra_combined"),
-        function=pop3_spectra_combined,
+        function=_pop3_spectra_combined,
         #force_override=True,
         units="erg/s",
         sampling_type="particle",
-        vector_field=False,
+        vector_field=True,
         display_name="Pop. III Combined Star Spectra",
     )
+
+    def _deposit_pop3_spectra(ds) -> None:
+
+        fname = ds.add_deposited_particle_field(
+            ("pop3", "spectra"), method="sum", vector_field=True
+        )
