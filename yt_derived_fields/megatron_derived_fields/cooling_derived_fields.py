@@ -103,7 +103,7 @@ def _initialize_photoheating_heating(ds):
             cr_heating = data["ramses", "hydro_heating_cr"]
         return (
             data["gas", "heating_rate"]
-            - data["gas", "heating_h2"]
+            - data["gas", "heating_H2"]
             - data["gas", "heating_pe"]
             - data["gas", "heating_ct"]
             - cr_heating
