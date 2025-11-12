@@ -175,6 +175,22 @@ def _initialize_pop2_spectra(ds):
         display_name="Pop. II Star Spectra",
     )
 
+    def pop2_spectra_combined(field, data):
+
+        pop2_spec_combined = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=True)
+
+        return pop2_spec_combined
+
+    ds.add_field(
+        name=("pop2", "spectra_combined"),
+        function=pop2_spectra_combined,
+        #force_override=True,
+        units="erg/s",
+        sampling_type="particle",
+        vector_field=False,
+        display_name="Pop. II Combined Star Spectra",
+    )
+
 
 def _initialize_pop3_spectra(ds):
     def pop3_spectra(field, data):
@@ -191,4 +207,20 @@ def _initialize_pop3_spectra(ds):
         sampling_type="particle",
         vector_field=True,
         display_name="Pop. III Star Spectra",
+    )
+
+    def pop3_spectra_combined(field, data):
+
+        pop3_spec_combined = pop3_stellar_spectra.get_pop_3_spectrum(data, combined=True)
+
+        return pop3_spec_combined
+
+    ds.add_field(
+        name=("pop3", "spectra_combined"),
+        function=pop3_spectra_combined,
+        #force_override=True,
+        units="erg/s",
+        sampling_type="particle",
+        vector_field=False,
+        display_name="Pop. III Combined Star Spectra",
     )
