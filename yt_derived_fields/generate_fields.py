@@ -27,7 +27,7 @@ def create_derived_fields(
     """
 
     # Create chemistry derived fields
-    chemistry_derived_fields.create_chemistry_derived_fields(ds, simple_ne=simple_ne)
+    chemistry_derived_fields.create_chemistry_derived_fields(ds, ne_use_primordial_only=simple_ne)
 
     # Create cooling derived fields
     cooling_derived_fields.create_cooling_derived_fields(ds, H2_cooling=H2_cooling)

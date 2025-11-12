@@ -4,7 +4,10 @@
 # Author: Anatole Storck
 
 from yt_derived_fields.megatron_derived_fields import chemistry_derived_fields as chem_fields
-from yt_derived_fields.spectral_utils.nebular_continuum import get_nebular_continuum_recombination, get_nebular_continuum_two_photon
+from yt_derived_fields.spectral_utils.nebular_continuum import (
+    get_nebular_continuum_recombination,
+    get_nebular_continuum_two_photon
+)
 
 # Add nebular continuum derived fields to the dataset
 # This includes:
