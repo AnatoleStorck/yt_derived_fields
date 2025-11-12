@@ -25,6 +25,7 @@ dependencies = [
     "scipy",
     "joblib",
     "numpy",
+    "pandas",
     "unyt",
     "numexpr",
     "pooch",
