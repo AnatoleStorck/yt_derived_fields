@@ -42,4 +42,4 @@ def create_derived_fields(
     radiative_derived_fields.create_rt_derived_fields(ds)
 
     # Create star derived fields
-    stars_derived_fields.create_star_derived_fields(ds, pop3_stars=pop3_stars)
+    stars_derived_fields.create_star_derived_fields(ds, pop3=pop3_stars)
