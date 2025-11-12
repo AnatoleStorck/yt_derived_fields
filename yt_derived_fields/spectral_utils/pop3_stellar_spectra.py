@@ -22,7 +22,7 @@ def _resolve_data_paths(data_dir: Optional[str]) -> tuple[Path, Path]:
     candidates = []
     if data_dir:
         candidates.append(Path(data_dir))
-    # fallbacks from the original code
+    # Fallback onto known paths (glamdring, infinity)
     candidates.append(Path("/mnt/glacier/DATA/Pop_III_spectra"))
     candidates.append(Path("/data100/cadiou/Megatron/DATA/Pop_III_spectra"))
 
@@ -68,8 +68,6 @@ def generate_pop_III_spec_interp(
     Notes:
       - Uses block-mean downsampling for speed and consistency.
       - Does not crop by [lmin, lmax] because the native wavelength grid is defined by the data file.
-        The lmin/lmax are used to size the wavelength array for empty outputs and to align
-        the downsampling factor.
     """
     masses, spectra = _load_pop3_data(data_dir)  # spectra: (n_masses, n_wvl)
 
@@ -116,8 +114,7 @@ def get_pop_3_spectrum(
     # Active masses in Msun; derive bounds from the data itself
     active_popIII_masses = data["pop3", "particle_initial_mass"][pop3_alive_status].to("Msun").value
     masses_all, _ = _load_pop3_data(data_dir)
-    mmin, mmax = float(np.min(masses_all)), float(np.max(masses_all))
-    active_popIII_masses = np.clip(active_popIII_masses, mmin, mmax)
+    active_popIII_masses = np.clip(active_popIII_masses, masses_all.min(), masses_all.max())
 
     # Interpolate spectra for the active masses
     spec_interp_p3 = generate_pop_III_spec_interp(downsample, ds_nwv, data_dir)
