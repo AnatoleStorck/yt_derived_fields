@@ -155,6 +155,8 @@ def get_nebular_continuum_recombination(
     # either due to unresolved stromgren spheres or numerical diffusion of electrons
     T_rescale[T_filt] = (10.0**4.46) / temperatures[T_filt]
 
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
     if isinstance(data, FieldDetector):
         return np.zeros(nH.shape) * u.erg / u.s
 
@@ -254,6 +256,8 @@ def get_nebular_continuum_two_photon(
     cell_volumes = data["gas", "volume"].to("cm**3").value
     electron_density = data["gas", "electron_number_density"].to("cm**-3").value
 
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
     if isinstance(data, FieldDetector):
         return np.zeros(nH.shape) * u.erg / u.s
 

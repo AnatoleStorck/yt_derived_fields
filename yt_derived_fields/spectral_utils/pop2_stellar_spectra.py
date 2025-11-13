@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 from functools import cache
 
+from yt.fields.field_detector import FieldDetector
 from yt_derived_fields.spectral_utils.wavelength import wavelength_space, _block_mean_last_axis
 
 
@@ -184,16 +185,22 @@ def get_pop_2_spectrum(
         return np.zeros_like(wavelength_space(lmin, lmax, downsample, ds_nwv)) * u.erg / u.s
 
 
-    metal_grid, ages_grid, spec_interp_p2 = generate_pop_II_spec_interp(
-        lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv, data_dir=data_dir
-    )
-
     # Build interpolation inputs
     to_interp = np.empty((N_pop2, 2), dtype=float)
     met_O = np.asarray(data["pop2", "particle_metallicity_002"].value, dtype=float)
     met_Fe = np.asarray(data["pop2", "particle_metallicity_001"].value, dtype=float)
     Z_mix = 2.09 * met_O + 1.06 * met_Fe  # same mixture as before
     age_yr = data["pop2", "age"].to("yr").value
+
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
+    if isinstance(data, FieldDetector):
+        return np.zeros(age_yr.shape) * u.erg / u.s
+
+    # Get the interpolator (gives a spectra based on stellar mass and age)
+    metal_grid, ages_grid, spec_interp_p2 = generate_pop_II_spec_interp(
+        lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv, data_dir=data_dir
+    )
 
     # Enforce grid bounds
     to_interp[:, 0] = np.clip(Z_mix, metal_grid.min(), metal_grid.max())
