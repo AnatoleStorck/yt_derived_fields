@@ -16,14 +16,16 @@ def create_derived_fields(
     pop3_stars=False
     ):
     """
-    Create all derived fields for MEGATRON datasets.
-
+    Create all derived fields for MEGATRON datasets. A few things to note: Some runs don't include Population III star
+    so the creation of pop3 fields is disabled by default. Most simulations were run if the moseley H2 cooling model, but
+    some were run with H2GP (not sure about which sims used which model.)
+    
     Parameters:
     - ds: yt dataset
     - simple_ne: whether to use simple electron number density calculation (no metal electrons)
+                 will skip the reading of many variables (all metal fields) at the cost of accuracy
     - H2_cooling: method for H2 cooling ('moseley', or 'H2GP')
     - pop3_stars: whether to initialize Pop. III star filters and fields
-    - kwargs: additional arguments for specific field initializations
     """
 
     # Create chemistry derived fields
