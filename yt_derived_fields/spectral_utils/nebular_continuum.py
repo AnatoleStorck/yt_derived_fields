@@ -15,7 +15,6 @@ import numpy as np
 
 import pyneb as pn
 
-from joblib import Parallel, delayed
 from scipy.interpolate import RegularGridInterpolator
 
 from pathlib import Path
@@ -123,6 +122,7 @@ def get_nebular_continuum_recombination(
     lmax: int = 10000,
     downsample: bool = True,
     ds_nwv: int = 5,
+    parallel: bool = True,
     n_batch: int = 1000,
     ncpu_max: int = 12,
     data_dir: Optional[str] = None,
@@ -155,6 +155,8 @@ def get_nebular_continuum_recombination(
     # either due to unresolved stromgren spheres or numerical diffusion of electrons
     T_rescale[T_filt] = (10.0**4.46) / temperatures[T_filt]
 
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
     if isinstance(data, FieldDetector):
         return np.zeros(nH.shape) * u.erg / u.s
 
@@ -196,6 +198,20 @@ def get_nebular_continuum_recombination(
         )
 
 
+    if not parallel:        # If not parallelizing, do it all at once
+        nebc_spec = (
+            nebc_interp(to_interpolate)
+            * cell_volumes[:, None]
+            * electron_density[:, None]
+            * HII_density[:, None]
+            * T_rescale[:, None]
+        ) * u.erg / u.s
+
+        if combined:
+            nebc_spec = nebc_spec.sum(axis=0)
+
+        return nebc_spec
+
     ### Parallelize the interpolation step ###
 
     # Determine the number of wavelengths from the interpolator output
@@ -221,6 +237,7 @@ def get_nebular_continuum_recombination(
             * T_rescale[c1:c2, None]
         )
     from tqdm import tqdm
+    from joblib import Parallel, delayed
     # Parallelize over batches
     batch_results = Parallel(n_jobs=n_cpus)(
         delayed(batch_interp)(all_c1[i], all_c2[i]) for i in tqdm(range(len(all_c1)))
@@ -254,6 +271,8 @@ def get_nebular_continuum_two_photon(
     cell_volumes = data["gas", "volume"].to("cm**3").value
     electron_density = data["gas", "electron_number_density"].to("cm**-3").value
 
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
     if isinstance(data, FieldDetector):
         return np.zeros(nH.shape) * u.erg / u.s
 

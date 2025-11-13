@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 from functools import cache
 
+from yt.fields.field_detector import FieldDetector
 from yt_derived_fields.spectral_utils.wavelength import wavelength_space, _block_mean_last_axis
 
 
@@ -113,6 +114,12 @@ def get_pop_3_spectrum(
 
     # Active masses in Msun; derive bounds from the data itself
     active_popIII_masses = data["pop3", "particle_initial_mass"][pop3_alive_status].to("Msun").value
+
+    # YT passes through an array of shape (8, 8, 8, 8) when initially detecting fields.
+    # Stop the function before it gets to the interpolator, which expects a flattened array of sane values
+    if isinstance(data, FieldDetector):
+        return np.zeros(active_popIII_masses.shape) * u.erg / u.s
+
     masses_all, _ = _load_pop3_data(data_dir)
     active_popIII_masses = np.clip(active_popIII_masses, masses_all.min(), masses_all.max())
 

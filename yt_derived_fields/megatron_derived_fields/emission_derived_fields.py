@@ -18,6 +18,7 @@ from yt_derived_fields.megatron_derived_fields import chemistry_data as chem_dat
 
 import numpy as np
 from roman import fromRoman
+
 from yt import units as u
 from yt.fields.field_detector import FieldDetector
 from yt.funcs import mylog
@@ -34,16 +35,32 @@ prim_data = chem_data.get_prim_data()
 
 @cache
 def get_coll_line_dict() -> dict[str, Any]:
-    mylog.info("Loading collision line dictionary from disk.")
-    _COLL_LINE_DICT = np.load(_spectral_data / "coll_line_dict.npy", allow_pickle=True).item()
-    return _COLL_LINE_DICT
+    coll_line_path = Path(_spectral_data / "coll_line_dict.npy")
+    if coll_line_path.exists():
+        mylog.info("Loading collision line dictionary from disk.")
+        _COLL_LINE_DICT = np.load(coll_line_path, allow_pickle=True).item()
+        return _COLL_LINE_DICT
+    else:
+        raise FileNotFoundError(
+        "Could not locate the collisional line dictionary. "
+        "Please generate it using generate_atomic_grids.py "
+        "in the spectral_utils folder."
+    )
 
 
 @cache
 def get_rec_line_dict() -> dict[str, Any]:
-    mylog.info("Loading recombination line dictionary from disk.")
-    _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
-    return _REC_LINE_DICT
+    rec_line_path = Path(_spectral_data / "rec_line_dict.npy")
+    if rec_line_path.exists():
+        mylog.info("Loading recombination line dictionary from disk.")
+        _REC_LINE_DICT = np.load(_spectral_data / "rec_line_dict.npy", allow_pickle=True).item()
+        return _REC_LINE_DICT
+    else:
+        raise FileNotFoundError(
+        "Could not locate the recombination line dictionary. "
+        "Please generate it using generate_atomic_grids.py "
+        "in the spectral_utils folder."
+    )
 
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
@@ -58,8 +75,9 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
                                      Example: ["Lya", "Hb", "He-1640"]
     """
 
-    # Need to generate the chemistry derived fields first, as we need to calculate the electron number density
-    chem_fields.create_chemistry_derived_fields(ds, molecules=False, mean_molecular_weight=False)
+    # generate chemistry fields if not already present
+    if not ("gas", "electron_number_density") in ds.derived_field_list:
+        chem_fields.create_chemistry_derived_fields(ds)
 
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)

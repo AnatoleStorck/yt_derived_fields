@@ -15,20 +15,20 @@ from yt_derived_fields.spectral_utils.nebular_continuum import (
 # - Two-photon continuum
 # - Total nebular continuum (recombination + two-photon)
 # For each of these, both cell-by-cell or combined spectra can be obtained.
-def create_nebular_continuum_derived_fields(ds):
+def create_nebular_continuum_derived_fields(ds, parallel=True):
     # generate chemistry fields if not already present
     if not ("gas", "electron_number_density") in ds.derived_field_list:
         chem_fields.create_chemistry_derived_fields(ds)
-    _initialize_nebular_continuum(ds)
+    _initialize_nebular_continuum(ds, parallel=parallel)
 
 
 
-def _initialize_nebular_continuum(ds):
+def _initialize_nebular_continuum(ds, parallel=True):
 
     def nebc_recomb(ds):
         def _get_nebc_recomb(field, data):
 
-            nebc_spec = get_nebular_continuum_recombination(data)
+            nebc_spec = get_nebular_continuum_recombination(data, parallel=parallel)
 
             return nebc_spec
 
@@ -42,7 +42,7 @@ def _initialize_nebular_continuum(ds):
 
         def _get_nebc_recomb_combined(field, data):
 
-            nebc_spec = get_nebular_continuum_recombination(data, combined=True)
+            nebc_spec = get_nebular_continuum_recombination(data, combined=True, parallel=parallel)
 
             return nebc_spec
         
@@ -87,7 +87,7 @@ def _initialize_nebular_continuum(ds):
 
         def _get_nebc_total(field, data):
 
-            nebc_spec = get_nebular_continuum_recombination(data) + get_nebular_continuum_two_photon(data)
+            nebc_spec = get_nebular_continuum_recombination(data, parallel=parallel) + get_nebular_continuum_two_photon(data)
 
             return nebc_spec
 
@@ -100,7 +100,7 @@ def _initialize_nebular_continuum(ds):
         )
         def _get_nebc_total_combined(field, data):
 
-            nebc_spec = get_nebular_continuum_recombination(data, combined=True) + get_nebular_continuum_two_photon(data, combined=True)
+            nebc_spec = get_nebular_continuum_recombination(data, combined=True, parallel=parallel) + get_nebular_continuum_two_photon(data, combined=True)
 
             return nebc_spec
 
