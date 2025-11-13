@@ -11,11 +11,11 @@ from yt_derived_fields.spectral_utils import pop2_stellar_spectra
 from yt_derived_fields.spectral_utils import pop3_stellar_spectra
 
 
-def create_star_derived_fields(ds, pop3=False):
+def create_star_derived_fields(ds, pop3=False, parallel=True):
     _initialize_star_age(ds)
 
     _initialize_pop2_star_filter(ds)
-    _initialize_pop2_spectral_fields(ds)
+    _initialize_pop2_spectral_fields(ds, parallel=parallel)
 
     if pop3:
         _initialize_pop3_star_filter(ds)
@@ -158,10 +158,10 @@ def _initialize_pop3_aliveStatus(ds):
     )
 
 
-def _initialize_pop2_spectral_fields(ds):
+def _initialize_pop2_spectral_fields(ds, parallel=True):
     def _pop2_spectra(field, data):
 
-        pop2_spec = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=False)
+        pop2_spec = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=False, parallel=parallel)
 
         return pop2_spec
 
@@ -177,7 +177,7 @@ def _initialize_pop2_spectral_fields(ds):
 
     def _pop2_spectra_combined(field, data):
 
-        pop2_spec_combined = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=True)
+        pop2_spec_combined = pop2_stellar_spectra.get_pop_2_spectrum(data, combined=True, parallel=parallel)
 
         return pop2_spec_combined
 

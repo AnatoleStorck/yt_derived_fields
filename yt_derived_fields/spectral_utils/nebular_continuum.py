@@ -15,7 +15,6 @@ import numpy as np
 
 import pyneb as pn
 
-from joblib import Parallel, delayed
 from scipy.interpolate import RegularGridInterpolator
 
 from pathlib import Path
@@ -123,6 +122,7 @@ def get_nebular_continuum_recombination(
     lmax: int = 10000,
     downsample: bool = True,
     ds_nwv: int = 5,
+    parallel: bool = True,
     n_batch: int = 1000,
     ncpu_max: int = 12,
     data_dir: Optional[str] = None,
@@ -198,6 +198,20 @@ def get_nebular_continuum_recombination(
         )
 
 
+    if not parallel:        # If not parallelizing, do it all at once
+        nebc_spec = (
+            nebc_interp(to_interpolate)
+            * cell_volumes[:, None]
+            * electron_density[:, None]
+            * HII_density[:, None]
+            * T_rescale[:, None]
+        ) * u.erg / u.s
+
+        if combined:
+            nebc_spec = nebc_spec.sum(axis=0)
+
+        return nebc_spec
+
     ### Parallelize the interpolation step ###
 
     # Determine the number of wavelengths from the interpolator output
@@ -223,6 +237,7 @@ def get_nebular_continuum_recombination(
             * T_rescale[c1:c2, None]
         )
     from tqdm import tqdm
+    from joblib import Parallel, delayed
     # Parallelize over batches
     batch_results = Parallel(n_jobs=n_cpus)(
         delayed(batch_interp)(all_c1[i], all_c2[i]) for i in tqdm(range(len(all_c1)))

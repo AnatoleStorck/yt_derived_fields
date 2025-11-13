@@ -1,8 +1,6 @@
 import numpy as np
-import pandas as pd
 import unyt as u
 
-from joblib import Parallel, delayed
 from scipy.interpolate import RegularGridInterpolator
 
 from pathlib import Path
@@ -150,6 +148,7 @@ def get_pop_2_spectrum(
     lmax: int = 10000,
     downsample: bool = True,
     ds_nwv: int = 5,
+    parallel: bool = True,
     n_batch: int = 5000,
     ncpu_max: int = 10,
     data_dir: Optional[str] = None,
@@ -210,7 +209,7 @@ def get_pop_2_spectrum(
     initial_masses = data["pop2", "particle_initial_mass"].to("Msun").value
 
     # Don't parallelize for small numbers of particles
-    if N_pop2 <= 1e5:
+    if N_pop2 <= 1e5 or not parallel:
         # If there are few particles, do not parallelize
         p2_spec = spec_interp_p2(to_interp) * initial_masses[:, None]
         if combined:
@@ -230,6 +229,7 @@ def get_pop_2_spectrum(
         return spec_interp_p2(to_interp[c1:c2, :]) * initial_masses[c1:c2, None]
 
     from tqdm import tqdm
+    from joblib import Parallel, delayed
     batch_results = Parallel(n_jobs=n_cpus)(delayed(batch_interp)(all_c1[i], all_c2[i]) for i in tqdm(range(len(all_c1))))
 
     # Fill results array
