@@ -10,12 +10,38 @@
 
 # Written by Harley Katz and modified by Anatole Storck
 
-import os
 
 # Set the XUVTOP environment variable to the location of the CHIANTI database
+import os
+from pathlib import Path
+
+#### SET THE PATH HERE IF YOU HAVE DOWNLOADED CHIANTI YOURSELF #### < -----
+data_dir = None                                                   # < -----
+################################################################### < -----
+
+candidates: list[Path] = []
+if data_dir:
+    candidates.append(Path(data_dir))
+# Fallback onto known paths (glamdring, infinity)
+candidates.append(Path("/mnt/glacier/chianti/"))
+candidates.append(Path("/data100/cadiou/Megatron/chianti/"))
+
+chianti_path = None
+for base in candidates:
+    test_folder = base / "neb_continuum.npy"
+    if test_folder.exists():
+        chianti_path = test_folder
+if chianti_path is None:
+    raise FileNotFoundError(
+    "Could not locate the chianti database. "
+    "Give a valid data directory, or place files under one of the known paths."
+)
+
 os.environ["XUVTOP"] = "/mnt/glacier/chianti/"
+
 print("setting environment variable XUVTOP to", os.environ["XUVTOP"])
 import ChiantiPy.core as ch
+
 
 import numpy as np
 import pyneb as pn
