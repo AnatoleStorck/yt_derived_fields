@@ -14,7 +14,6 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import chemistry_data as chem_data
 import numpy as np
 from roman import fromRoman
 
@@ -41,10 +40,10 @@ def get_coll_line_dict() -> dict[str, Any]:
         return _COLL_LINE_DICT
     else:
         raise FileNotFoundError(
-        "Could not locate the collisional line dictionary. "
-        "Please generate it using generate_atomic_grids.py "
-        "in the spectral_utils folder."
-    )
+            "Could not locate the collisional line dictionary. "
+            "Please generate it using generate_atomic_grids.py "
+            "in the spectral_utils folder."
+        )
 
 
 @cache
@@ -56,10 +55,10 @@ def get_rec_line_dict() -> dict[str, Any]:
         return _REC_LINE_DICT
     else:
         raise FileNotFoundError(
-        "Could not locate the recombination line dictionary. "
-        "Please generate it using generate_atomic_grids.py "
-        "in the spectral_utils folder."
-    )
+            "Could not locate the recombination line dictionary. "
+            "Please generate it using generate_atomic_grids.py "
+            "in the spectral_utils folder."
+        )
 
 
 def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
@@ -75,7 +74,7 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
     """
 
     # generate chemistry fields if not already present
-    if not ("gas", "electron_number_density") in ds.derived_field_list:
+    if ("gas", "electron_number_density") not in ds.derived_field_list:
         chem_fields.create_chemistry_derived_fields(ds)
 
     # These dictionaries are used to store the emission line metadata, along with interpolation grids

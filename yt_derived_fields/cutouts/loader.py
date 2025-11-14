@@ -183,11 +183,34 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
     # Get level
     level = np.round(np.log2(1 / dx)).astype(int)
 
+    left_edge = [0, 0, 0]
+    right_edge = [1, 1, 1]
+
+    # Compute left edge at coarsest level
+    lcoarse = level.min()
+    left_edge = np.round(xc.min(axis=0) * 2**lcoarse - 1) / (2**lcoarse)
+    right_edge = np.round(xc.max(axis=0) * 2**lcoarse + 1) / (2**lcoarse)
+
+    # Span should be a multiple of two
+    span = (right_edge - left_edge).max()
+    span_lvl = int(np.floor(np.log2(1 / span)))
+    span_pow2 = 1 / 2**span_lvl
+
+    xc -= left_edge
+    xc /= span_pow2
+    dx /= span_pow2
+
+    right_edge = left_edge + span_pow2
+
+    # Update level
+    level -= span_lvl
+
     yt.mylog.debug("Building octree")
-    oct = OctTree.from_list(xc, level)
+    octree = OctTree.from_list(xc, level)
 
     yt.mylog.debug("Depth-first traversal")
-    ref_mask, leaf_order = oct.get_refmask()
+    ref_mask, leaf_order = octree.get_refmask()
+    del octree
 
     nan_mask = np.where(leaf_order < 0, np.nan, 1)
 
@@ -197,9 +220,6 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
 
     yt.mylog.debug("Reordering data according to octree leaf order")
     data = {("gas", k): reorder(v) for k, v in data.items()}
-
-    left_edge = [0, 0, 0]
-    right_edge = [1, 1, 1]
 
     params = {
         "cosmological_simulation": True,
