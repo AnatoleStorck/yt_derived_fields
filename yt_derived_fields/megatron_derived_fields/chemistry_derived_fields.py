@@ -19,14 +19,7 @@ def _initialize_metal_density(ds, element: str):
     metal_name = metal_data[element]["name"]
 
     def _metal_density(field, data):
-        if element == "Fe":  # NOTE: iron_fraction is "Metallicity"
-            metal_density = data["gas", "density"] * data["gas", "iron_fraction"]
-        else:
-            metal_density = (
-                data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
-            )
-
-        return metal_density
+        return data["gas", "density"] * data["gas", f"{metal_name}_fraction"]
 
     ds.add_field(
         name=("gas", f"{metal_name}_density"),
@@ -94,23 +87,19 @@ def _initialize_metallicity(ds):
         Z /= rho
         return Z
 
+    # Attempt to override old field if exists
+    if ("gas", "metallicity") in ds.field_list:
+        force_override = True
+    else:
+        force_override = False
     ds.add_field(
-        name=("gas", "real_metallicity"),
+        name=("gas", "metallicity"),
         function=_metallicity,
         units="1",
         sampling_type="cell",
         display_name="Metallicity",
+        force_override=force_override,
     )
-    # Attempt to override old field if exists
-    if ("gas", "metallicity") in ds.field_list:
-        ds.add_field(
-            name=("gas", "metallicity"),
-            function=_metallicity,
-            units="1",
-            sampling_type="cell",
-            display_name="Metallicity",
-            force_override=True,
-        )
 
 
 def _initialize_primordial_density(ds, element):
@@ -120,7 +109,7 @@ def _initialize_primordial_density(ds, element):
         return (
             data["gas", "density"]
             * prim_data[element]["massFrac"]
-            * (1 - data["gas", "real_metallicity"])
+            * (1 - data["gas", "metallicity"])
         )
 
     ds.add_field(
@@ -238,20 +227,8 @@ def _initialize_electron_number_density(ds, primordial_only=False):
 
 def _initialize_mean_molecular_weight(ds):
     def _mean_molecular_weight(field, data):
-        # Compute the total density in the cell
-        # NOTE: electron don't matter
 
-        rhoH = data["gas", "hydrogen_density"]
-        rhoHe = data["gas", "helium_density"]
-
-        rhoMet = np.zeros_like(rhoH)
-        for element in metal_data:
-            metal_name = metal_data[element]["name"]
-            rhoMet += data["gas", f"{metal_name}_density"]
-
-        rhoCO = data["gas", "CO_density"]
-
-        sum_density = (rhoH + rhoHe + rhoMet + rhoCO) / u.amu
+        sum_density = data["gas", "density"] / u.amu
 
         # Compute the number density of each bound structure in the cell
         # NOTE: electrons matter
