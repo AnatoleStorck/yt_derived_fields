@@ -56,12 +56,12 @@ p.save()
 ## How to use
 
 1. Install yt:
-   Since the changes to YT can be very specific to the MEGATRON simulation, it is recommended to use a branch of yt that has been modified for this purpose. The branch `yt_megatron` on Anatole Storck's yt fork in GitHub contains the necessary changes.
+   Since the changes to YT can be very specific to the MEGATRON simulation, it is recommended to use a branch of yt that has been modified for this purpose. The branch `megatron_rtFix` on Anatole Storck's yt fork in GitHub contains the necessary changes.
 
    ```shell
    git clone https://github.com/AnatoleStorck/yt.git
    cd yt
-   git switch yt_megatron
+   git switch megatron_rtFix
    pip install -e .
    ```
 
