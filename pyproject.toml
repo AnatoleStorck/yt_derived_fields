@@ -27,7 +27,6 @@ dependencies = [
     "numpy",
     "pandas",
     "unyt",
-    "numexpr",
     "pooch",
 ]
 
