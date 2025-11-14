@@ -1,7 +1,6 @@
 from enum import Enum
 from pathlib import Path
 
-import numexpr as ne
 import numpy as np
 import pooch
 import unyt
@@ -142,6 +141,12 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
         Whether to show a progress bar when loading the data. Default is True.
     """
     original_path = path = Path(filename)
+    try:
+        import numexpr as ne
+
+        use_numexpr = True
+    except ImportError:
+        use_numexpr = False
 
     if not path.exists():
         path = Path(pooch.retrieve(str(filename), known_hash=None))
@@ -153,10 +158,16 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
             # Read in the quantity
             raw_data = ff.read_reals("float64")
             if scale == Scale.LOG:
-                ne.evaluate("10 ** raw_data", out=raw_data)
+                if use_numexpr:
+                    ne.evaluate("10 ** raw_data", out=raw_data)
+                else:
+                    raw_data = 10**raw_data
 
             if name == "density":
-                ne.evaluate("raw_data / 0.76", out=raw_data)  # Convert from nH to rho
+                if use_numexpr:
+                    ne.evaluate("raw_data / 0.76", out=raw_data)  # Convert from nH to rho
+                else:
+                    raw_data = raw_data / 0.76
             data[name] = raw_data
 
     redshift = data.pop("redshift")[0]
