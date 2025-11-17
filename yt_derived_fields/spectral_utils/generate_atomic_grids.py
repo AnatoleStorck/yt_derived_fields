@@ -28,7 +28,7 @@ candidates.append(Path("/data100/cadiou/Megatron/chianti/"))
 
 chianti_path = None
 for base in candidates:
-    test_folder = base / "neb_continuum.npy"
+    test_folder = base
     if test_folder.exists():
         chianti_path = test_folder
 if chianti_path is None:
@@ -37,7 +37,7 @@ if chianti_path is None:
     "Give a valid data directory, or place files under one of the known paths."
 )
 
-os.environ["XUVTOP"] = "/mnt/glacier/chianti/"
+os.environ["XUVTOP"] = chianti_path
 
 print("setting environment variable XUVTOP to", os.environ["XUVTOP"])
 import ChiantiPy.core as ch
