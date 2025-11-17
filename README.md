@@ -101,6 +101,8 @@ p.save()
    # Generate all chemistry, cooling, radiative, stellar fields. Along with all emission lines and nebular continuum fields
    gen_fields.create_derived_fields(ds, simple_ne=False, pop3_stars=False, parallel=True)
 
+   # Create a sphere around a halo from the halo catalog
+   # (This could also be any other sized region you want)
    some_halo = hc[hc["id"] == 42]
    halo_sphere = ds.sphere(([some_halo.x,
                              some_halo.y,
