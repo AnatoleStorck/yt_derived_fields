@@ -93,7 +93,7 @@ p.save()
    import yt
    import pandas as pd
 
-   from yt_derived_fields.generate_fields as gen_fields
+   import yt_derived_fields.generate_fields as gen_fields
 
    ds = yt.load(<path_to_your_favorite_megatron_output>)
    hc = pd.read_csv(<path_to_your_halo_catalog_in_pandas_format>)
