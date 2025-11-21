@@ -206,6 +206,43 @@ aliases = ["met_S"]
 units = "1"
 display_name = "met_S"
 
+[ramses-rt]
+fields = [
+    "Photon_density_1, f",
+    "Photon_flux_x_1, f",
+    "Photon_flux_y_1, f",
+    "Photon_flux_z_1, f",
+    "Photon_density_2, f",
+    "Photon_flux_x_2, f",
+    "Photon_flux_y_2, f",
+    "Photon_flux_z_2, f",
+    "Photon_density_3, f",
+    "Photon_flux_x_3, f",
+    "Photon_flux_y_3, f",
+    "Photon_flux_z_3, f",
+    "Photon_density_4, f",
+    "Photon_flux_x_4, f",
+    "Photon_flux_y_4, f",
+    "Photon_flux_z_4, f",
+    "Photon_density_5, f",
+    "Photon_flux_x_5, f",
+    "Photon_flux_y_5, f",
+    "Photon_flux_z_5, f",
+    "Photon_density_6, f",
+    "Photon_flux_x_6, f",
+    "Photon_flux_y_6, f",
+    "Photon_flux_z_6, f",
+    "Photon_density_7, f",
+    "Photon_flux_x_7, f",
+    "Photon_flux_y_7, f",
+    "Photon_flux_z_7, f",
+    "Photon_density_8, f",
+    "Photon_flux_x_8, f",
+    "Photon_flux_y_8, f",
+    "Photon_flux_z_8, f",
+]
+
+
 # EVEN MORE IONIZATION FRACTIONS
 [fields.ramses.hydro_oxygen_01]
 aliases = ["oxygen_01"]
