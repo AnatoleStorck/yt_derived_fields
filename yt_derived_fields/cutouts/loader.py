@@ -243,7 +243,7 @@ def load_cutout(
     boxsize: float = 50,
     h0: float = 0.6727,
     verbose: bool = True,
-    version: int | list[tuple[str, Scale, str, str]] = 1,
+    version: int | list[tuple[str, Scale, str, str]] = 2,
 ):
     """Load a Megatron cutout file as a yt dataset.
 
@@ -257,10 +257,25 @@ def load_cutout(
         The Hubble constant of the original simulation. Default is 0.6727.
     verbose : bool
         Whether to show a progress bar when loading the data. Default is True.
-    version : int or list of (name, scale, unit) tuples
+    version : int or list of (name, scale, unit, dtype) tuples
         The version of the cutout format to load. If an int, it must be a key
         in the `headers` dict. If a list, it should be a custom header
         specification. Default is 2.
+
+        Version 1 (legacy):
+            - All quantities stored as float64 (double precision).
+            - Ion fractions (element_NN) and pressure stored as linear values.
+            - Fields: redshift, dx, x/y/z, vx/vy/vz, density, temperature,
+              pressure, metal number densities, ion fractions, radiation fields.
+
+        Version 2 (current, used for output_00010 and later):
+            - Positions (x, y, z) stored as float64; all other quantities as
+              float32 (single precision).
+            - All quantities except positions and velocities stored as log₁₀
+              values on disk; the loader applies 10**value automatically.
+            - Ion fractions (element_NN) are therefore stored as log₁₀.
+            - Additional fields vs v1: ``hydrogen_density``, ``heating_rate``,
+              ``cooling_rate``.
 
     Returns
     -------
@@ -318,7 +333,7 @@ def load_cutout(
     dx = data.pop("dx") / 3.08e18 * unyt.pc / boxsize_physical
 
     # Convert everything else
-    for name, _, unit in header:
+    for name, _, unit, _ in header:
         if name not in data:
             continue
         data[name] = unyt.unyt_array(data[name], unit, registry=registry)
