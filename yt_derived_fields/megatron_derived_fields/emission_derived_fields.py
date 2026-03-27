@@ -75,10 +75,10 @@ def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
 
     # generate chemistry fields if not already present
     if ("gas", "electron_number_density") not in ds.derived_field_list:
-        chem_fields.create_chemistry_derived_fields(ds)
+        chem_fields.create_chemistry_derived_fields(ds, electron_number_density=True)
 
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
-    # Can be generating using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
+    # Can be generated using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
     if coll_lines is not None or all_lines:
         coll_line_dict = get_coll_line_dict()
     if rec_lines is not None or all_lines:
