@@ -13,6 +13,7 @@ from yt_derived_fields.spectral_utils import pop3_stellar_spectra
 
 def create_star_derived_fields(ds, pop3=False, parallel=True):
     _initialize_star_age(ds)
+    _initialize_star_metallicity(ds)
 
     _initialize_pop2_star_filter(ds)
     _initialize_pop2_spectral_fields(ds, parallel=parallel)
@@ -69,6 +70,25 @@ def _initialize_star_age(ds):
         display_name="Star age",
     )
 
+def _initialize_star_metallicity(ds):
+    def _star_metallicity(field, data):
+
+        # Metallicity of the star particle defined from Oxygen and Iron abundances
+        met_O = data["star", "particle_metallicity_002"].value
+        met_Fe = data["star", "particle_metallicity_001"].value
+
+        star_metallicity = 2.09 * met_O + 1.06 * met_Fe
+
+        return star_metallicity
+
+    ds.add_field(
+        name=("star", "metallicity"),
+        function=_star_metallicity,
+        force_override=True,
+        units="dimensionless",
+        sampling_type="particle",
+        display_name="Star metallicity",
+    )
 
 def _initialize_pop2_star_filter(ds):
     """
@@ -77,16 +97,12 @@ def _initialize_pop2_star_filter(ds):
     """
 
     def _pop2_star_filter(filter, data):
-        # Metallicity criteria for Pop. II stars in MEGATRON
-        met_O = data["star", "particle_metallicity_002"].value
-        met_Fe = data["star", "particle_metallicity_001"].value
-
-        return (met_O * 2.09 + 1.06 * met_Fe) >= 2e-8
+        return data["star", "metallicity"] >= 2e-8
 
     yt.add_particle_filter(
         "pop2",
         function=_pop2_star_filter,
-        requires=["particle_metallicity_002", "particle_metallicity_001"],
+        requires=["metallicity"],
         filtered_type="star",
     )
 
@@ -96,16 +112,12 @@ def _initialize_pop2_star_filter(ds):
 
 def _initialize_pop3_star_filter(ds):
     def _pop3_star_filter(filter, data):
-        # Metallicity criteria for Pop. III stars in MEGATRON
-        met_O = data["star", "particle_metallicity_002"].value
-        met_Fe = data["star", "particle_metallicity_001"].value
-
-        return (met_O * 2.09 + 1.06 * met_Fe) < 2e-8
+        return data["star", "metallicity"] < 2e-8
 
     yt.add_particle_filter(
         "pop3",
         function=_pop3_star_filter,
-        requires=["particle_metallicity_002", "particle_metallicity_001"],
+        requires=["metallicity"],
         filtered_type="star",
     )
 
