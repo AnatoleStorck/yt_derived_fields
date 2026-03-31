@@ -76,6 +76,9 @@ def generate_dust_depletion_field(ds):
             nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
             T = data["gas", "temperature"].in_units("K").d
 
+            if isinstance(data, FieldDetector):
+                return np.zeros(nH.shape) * u.erg / u.s
+
             depletion_table = np.ones(len(nH))
             filt = T < 6.0
 
@@ -106,7 +109,7 @@ def generate_dust_depletion_field(ds):
         ds.add_field(
             name=("gas", f"{el}_dep"),
             function=_get_depletion,
-            #units="",
+            units="",
             sampling_type="cell",
             display_name=f"{el} Depletion Factor",
         )
