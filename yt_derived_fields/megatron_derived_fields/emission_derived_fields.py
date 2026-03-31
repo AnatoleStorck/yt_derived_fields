@@ -296,6 +296,8 @@ def get_emission_lines(
                 all_emission_lines = 10.**mif_cloudy(to_interp)
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
+                    print(f"Replacing {line} luminosity in {cells_to_replace.sum()} cells with CLOUDY model.")
+                    print(all_emission_lines.shape, line_idx, loc_lum_cloudy.shape)
                     loc_lum_cloudy = all_emission_lines[line_idx, :]
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
