@@ -137,10 +137,11 @@ def stromgren_correction_pipeline(ds):
 
         r_strom = np.cbrt((3.0 * ion_lums) / (4.0 * np.pi * nHI**2 * alphab)) * u.cm
 
-        print("dx (pc): ", dx[0])
-        print("r_strom (pc): ", r_strom.to("pc")[r_strom.to("pc") > 0])
+        bool_arr = np.full_like(dx, False, dtype=bool)
 
-        bool_arr = 2 * r_strom.to("pc") > dx
+        # two things to check: is r_strom > 0 (does it have stars), if not then don't flag it as unresolved.
+        # If r_strom > 0, then check if it's smaller than dx/2 (i.e. unresolved)
+        bool_arr[r_strom.to("pc") > 0] = r_strom.to("pc")[r_strom.to("pc") > 0] < (dx[r_strom.to("pc") > 0] / 2.0)
 
         return bool_arr
 
