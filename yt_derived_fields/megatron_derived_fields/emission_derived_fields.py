@@ -223,6 +223,15 @@ def get_emission_lines(
                 'S  3 9530.62A': None,
                 }
 
+        # Build a robust lookup from yt line names (e.g. "Ha") to CLOUDY line-list indices.
+        # Some yt names can map to multiple CLOUDY aliases; keep the first valid entry.
+        line_index_map = {}
+        for cloudy_name, yt_name in line_list_map_dict.items():
+            if yt_name is None or yt_name in line_index_map:
+                continue
+            if cloudy_name in line_list:
+                line_index_map[yt_name] = line_list.index(cloudy_name)
+
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
         def _get_coll_line_emissivity(field, data):
@@ -285,9 +294,8 @@ def get_emission_lines(
                 # TODO: This line does the interpolation for all lines, but we redo it for every line.
                 # Can be sped up by only doing it once and storing the results.
                 all_emission_lines = 10.**mif_cloudy(to_interp)
-                line_idx = line_list_map_dict[line]
+                line_idx = line_index_map.get(line)
                 if line_idx is not None:
-                    line_idx = line_list.index(line_idx)
                     loc_lum_cloudy = all_emission_lines[line_idx, :]
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
@@ -386,9 +394,8 @@ def get_emission_lines(
                 # TODO: This line does the interpolation for all lines, but we redo it for every line.
                 # Can be sped up by only doing it once and storing the results.
                 all_emission_lines = 10.**mif_cloudy(to_interp)
-                line_idx = line_list_map_dict[line]
+                line_idx = line_index_map.get(line)
                 if line_idx is not None:
-                    line_idx = line_list.index(line_idx)
                     loc_lum_cloudy = all_emission_lines[line_idx, :]
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
