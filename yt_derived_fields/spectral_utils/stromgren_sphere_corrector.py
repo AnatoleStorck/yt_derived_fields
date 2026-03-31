@@ -49,7 +49,7 @@ def stromgren_correction_pipeline(ds):
         if isinstance(data, FieldDetector):
             return np.zeros(metal.shape) * u.erg / u.s
 
-        pp = np.zeros((Nstars, 2))
+        pp = np.zeros((int(Nstars), 2))
         loc_ages = ages
         loc_ages[loc_ages < 1.e-3] = 1e-3           # floor the ages
         pp[:,0] = np.log10(loc_ages)                # Note that this prevents nans
