@@ -310,14 +310,14 @@ def get_emission_lines(
             loc_lum = ne * nel * xion
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros_like(loc_lum)
+                loc_lum_cloudy = np.zeros_like(int(cells_to_replace.sum()))
 
-                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
-                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
+                O_over_H = np.log10(nO[cells_to_replace]) - np.log10(nH[cells_to_replace]) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC[cells_to_replace]) - np.log10(nH[cells_to_replace]) - np.log10(2.69E-04) # depletion
 
                 to_interp = format_cloudy_interpolator(
-                    nH, C_over_H, O_over_H, O_depletion,
-                    star_age, star_metal, star_ion_lums,
+                    nH[cells_to_replace], C_over_H, O_over_H, O_depletion[cells_to_replace],
+                    star_age[cells_to_replace], star_metal[cells_to_replace], star_ion_lums[cells_to_replace],
                 )
 
                 # TODO: This line does the interpolation for all lines, but we redo it for every line.
@@ -326,7 +326,7 @@ def get_emission_lines(
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
                     loc_lum_cloudy = get_cloudy_line_luminosity(
-                        all_emission_lines, line_idx, len(loc_lum)
+                        all_emission_lines, line_idx, int(cells_to_replace.sum())
                     )
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
