@@ -76,7 +76,7 @@ def generate_dust_depletion_field(ds):
             nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
             T = data["gas", "temperature"].in_units("K").d
 
-            depletion_table = np.ones((len(nH)))
+            depletion_table = np.ones(len(nH))
             filt = T < 6.0
 
             x = 12.0 + (nO - nH)
@@ -96,6 +96,8 @@ def generate_dust_depletion_field(ds):
 
             y = 10.0**y # This is the Gas to Dust mass ratio
 
+            print(depletion_table.shape, y.shape, nH.shape)
+
             # Fill table with depletions
             depletion_table[filt] = 1.0 - ( (1.0 - dep) * np.minimum(1.0, 162.0/y[filt]) )
 
@@ -104,7 +106,7 @@ def generate_dust_depletion_field(ds):
         ds.add_field(
             name=("gas", f"{el}_dep"),
             function=_get_depletion,
-            units="",
+            #units="",
             sampling_type="cell",
             display_name=f"{el} Depletion Factor",
         )
