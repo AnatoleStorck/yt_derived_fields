@@ -40,7 +40,7 @@ def stromgren_correction_pipeline(ds):
 
     def star_ion_lums(field, data):
 
-        Nstars = data["young_pop2", "particle_ones"].sum()
+        Nstars = data["young_pop2", "particle_ones"].sum().d
 
         ages = data["young_pop2", "age"].in_units("Myr").d
         masses = data["young_pop2", "particle_initial_mass"].in_units("Msun").d
