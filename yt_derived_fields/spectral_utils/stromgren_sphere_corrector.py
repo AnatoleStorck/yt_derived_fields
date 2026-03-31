@@ -1,87 +1,113 @@
-# First attempt to create a "replacement" scheme for the emission of gas cells which host stars whose stromgren spheres are not resolved.
+# First attempt to create a "replacement" scheme for the emission of gas cells which
+# host stars whose stromgren spheres are not resolved.
 
-# The point is that unresolved stromgren spheres will have their emission over/underestimated because the gas cell will not have the correct ionization states. So we want to replace the emission of these cells with the emission from a cloudy model with the same ionization parameter and metallicity as the star(s) in the cell.
+# The point is that unresolved stromgren spheres will have their emission
+# over/underestimated because the gas cell will not have the correct ionization states.
+# So we want to replace the emission of these cells with the emission from a cloudy model
+# with the same ionization parameter and metallicity as the star(s) in the cell.
 
 import numpy as np
-import pandas as pd
 
-from scipy import spatial
-from scipy.interpolate import RegularGridInterpolator
+from yt import units as u
+from yt.fields.field_detector import FieldDetector
+from yt.funcs import mylog
 
 from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators import (
     load_SED_from_sim,
-    initialize_cloudy_nebc_unresolved,
-    initialize_cloudy_nebc_unresolved_p3,
-    get_cloudy_el_interpolator,
-    get_cloudy_el_p3_interpolator,
-)
-from yt_derived_fields.spectral_utils.setup_stromgren_correction_finder import (
-    get_unresolved_stromgren_stars,
-    group_unresolved_strom_stars,
-)
-from yt_derived_fields.spectral_utils.setup_stromgren_correction_replacer import (
-    get_cloudy_emission_line_luminosities,
-    replace_emission,
 )
 
+def stromgren_correction_pipeline(ds):
+    """
+    This is the main function which will run the stromgren correction pipeline.
+    It will return a dataframe with the corrected emission line luminosities for
+    each gas cell.
+    """
 
-# Get the initial nebular continuum + emission and stellar spectra for each gas cell.
-# .
-# .
-# .
+    def star_ion_lums(field, data):
 
+        Nstars = data["young_pop2", "ones"].sum()
 
+        ages = data["young_pop2", "age"].in_units("Myr").d
+        masses = data["young_pop2", "initial_mass"].in_units("Msun").d
+        metal = (2.09 * data["young_pop2", "met_O"] +
+                 1.06 * data["young_pop2", "met_Fe"]).d
 
-# Whatever change this dogshit later
-downsample = True
-ds_nwv = 5
+        if isinstance(data, FieldDetector):
+            return np.zeros(metal.shape) * u.erg / u.s
 
+        pp = np.zeros((Nstars, 2))
+        loc_ages = ages
+        loc_ages[loc_ages < 1.e-3] = 1e-3           # floor the ages
+        pp[:,0] = np.log10(loc_ages)                # Note that this prevents nans
+        pp[:,1] = np.log10(metal + 1.e-40)          # eqn in rt_spectra 
 
-# --- --- --- --- --- -----Generate the Interpolators----- --- --- --- --- --- #
+        # Enforce bounds
+        pp[:,0][pp[:,0] < np.log10(age_bins)[0]]  = np.log10(age_bins)[0]
+        pp[:,0][pp[:,0] > np.log10(age_bins)[-1]] = np.log10(age_bins)[-1]
+        pp[:,1][pp[:,1] < metal_bins[0]]  = metal_bins[0]
+        pp[:,1][pp[:,1] > metal_bins[-1]] = metal_bins[-1]
 
-cloudy_nebc_interp = initialize_cloudy_nebc_unresolved(
-    downsample=downsample,ds_nwv=ds_nwv
-)
-cloudy_nebc_interp_p3 = initialize_cloudy_nebc_unresolved_p3(
-    downsample=downsample,ds_nwv=ds_nwv
-)
+        # get the interpolation matrix
+        # (age, metal) --> ionizing luminosity (erg/s) # TODO: check units
+        age_bins, metal_bins, mif = load_SED_from_sim(
+            top_dir="/mnt/glacier/DATA/SEDtables", ngroups=8, SED_isEgy=True
+        )
 
-mif_cloudy,line_list = get_cloudy_el_interpolator()
-mif_cloudy_p3 = get_cloudy_el_p3_interpolator()
+        ion_lums = 10.0**mif(pp) * masses[:, np.newaxis]
 
-age_bins, metal_bins, mif = load_SED_from_sim(
-    top_dir="/mnt/glacier/DATA/SEDtables", ngroups=8, SED_isEgy=True
-)
+        return ion_lums
 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    ds.add_field(
+        name=("young_pop2", "ionizing_luminosity"),
+        function=star_ion_lums,
+        units="erg/s",
+        sampling_type="particle",
+        display_name="Young Pop. II Star Ionizing Luminosity"
+    )
 
-ds = None
-
-df_gas = None # is just going to be some fields of ("gas", <field>)
-df_stars = None # is just going to be some fields of ("stars", <field>)
-
-df_emis = None # is just going to be a Ncells x spectra array.
-
-df_strom_stars = get_unresolved_stromgren_stars(
-    df_gas, df_stars,
-    age_bins, metal_bins, mif,
-    ionizing_group=4, verbose=False
-)
-
-df_strom_stars_new = group_unresolved_strom_stars(
-    df_strom_stars, df_gas["redshift"].iloc[0],
-    boxsize=70, rad_multiplier=0.75
-)
-
-
-replace_emission_lines = get_cloudy_emission_line_luminosities(
-    df_strom_stars_new,
-    mif_cloudy,
-    line_list,
-) # maybe replacement_emission_lines has nans, who cares for now
+    deposit_ionLum = ds.add_deposited_particle_field(
+       ("young_pop2", "ionizing_luminosity"), method="sum"
+   )
 
 
-df_emis = replace_emission(
-    df_emis, df_strom_stars_new,
-    replace_emission_lines, line_list,
-)
+    def is_stromgren_unresolved(field, data):
+
+        ion_lums = data[deposit_ionLum]
+
+        nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+        xHI = data["gas", "hydrogen_01"].d
+
+        dx = data["gas", "dx"].in_units("pc")
+
+        # Recombination rate
+        HII_temp = 1e4
+        lam_HI = 315614.0/HII_temp
+        alphab = (1.269e-13 * (lam_HI**1.503) /
+                  (1. + (lam_HI/0.522)**0.47)**1.923) # cm^3 s^-1
+
+        nHI = nH * xHI
+
+        r_strom = np.cbrt((3.0 * ion_lums) / (4.0 * np.pi * nHI**2 * alphab)) * u.cm
+
+        bool_arr = 2 * r_strom.to("pc") < dx
+
+        return bool_arr
+
+    ds.add_field(
+        name=("gas", "unresolved_stromgren"),
+        function=is_stromgren_unresolved,
+        units="bool",
+        sampling_type="cell",
+        display_name="Stromgren Sphere is Unresolved"
+    )
+
+    deposit_age_wIonLum = ds.add_deposited_particle_field(
+       ("young_pop2", "age"),
+       method="weighted_mean", weight_field="ionizing_luminosity"
+   )
+    deposit_metallicity_wIonLum = ds.add_deposited_particle_field(
+       ("young_pop2", "metallicity"),
+       method="weighted_mean", weight_field="ionizing_luminosity"
+   )
+
+
