@@ -140,7 +140,7 @@ def stromgren_correction_pipeline(ds):
         print("r_strom (pc): ", r_strom.to("pc"))
         print("dx (pc): ", dx)
 
-        bool_arr = 2 * r_strom.to("pc") < dx
+        bool_arr = 2 * r_strom.to("pc") > dx
 
         return bool_arr
 
