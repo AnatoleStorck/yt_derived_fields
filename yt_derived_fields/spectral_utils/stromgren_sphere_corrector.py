@@ -17,6 +17,36 @@ from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators i
     load_SED_from_sim,
 )
 
+from pathlib import Path
+from typing import Optional
+from functools import cache
+
+@cache
+def _resolve_SED_dir(data_dir: Optional[str]) -> Path:
+    """
+    Resolve directory containing the sim SEDs.
+    Tries:
+      - explicit data_dir if provided
+      - known fallbacks
+    """
+    candidates: list[Path] = []
+    if data_dir:
+        candidates.append(Path(data_dir))
+    # Fallback onto known paths (glamdring, infinity)
+    candidates.append(Path("/mnt/glacier/DATA/SEDtables"))
+    candidates.append(Path("/data122/cadiou/Megatron/DATA/SEDtables"))
+
+    for base in candidates:
+        test_file = base / "SEDtable1.lis"
+        if test_file.exists():
+            return base
+
+    raise FileNotFoundError(
+        "Could not locate SED sim directory. "
+        "Pass data_dir=..., or place files under one of the known paths."
+    )
+
+
 def stromgren_correction_pipeline(ds):
     """
     This is the main function which will run the stromgren correction pipeline.
@@ -51,8 +81,9 @@ def stromgren_correction_pipeline(ds):
 
         # get the interpolation matrix
         # (age, metal) --> ionizing luminosity (erg/s) # TODO: check units
+        sed_path = _resolve_SED_dir(None)
         age_bins, metal_bins, mif = load_SED_from_sim(
-            top_dir="/mnt/glacier/DATA/SEDtables", ngroups=8, SED_isEgy=True
+            top_dir=sed_path, ngroups=8, SED_isEgy=True
         )
 
         pp = np.zeros((int(Nstars), 2))
