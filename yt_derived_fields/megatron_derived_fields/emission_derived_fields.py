@@ -374,7 +374,7 @@ def get_emission_lines(
                 star_metal = data["deposit", "young_pop2_avg_metallicity"]
                 star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
 
-                cells_to_replace = data["gas", "unresolved_stromgren"]
+                cells_to_replace = data["gas", "unresolved_stromgren"].d
 
             # ----------------------------------------------------------
 
@@ -412,14 +412,14 @@ def get_emission_lines(
             loc_lum = loc_rec_lum + loc_col_lum
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros_like(loc_lum)
+                loc_lum_cloudy = np.zeros_like(int(cells_to_replace.sum()))
 
-                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
-                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
+                O_over_H = np.log10(nO[cells_to_replace]) - np.log10(nH[cells_to_replace]) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC[cells_to_replace]) - np.log10(nH[cells_to_replace]) - np.log10(2.69E-04) # depletion
 
                 to_interp = format_cloudy_interpolator(
-                    nH, C_over_H, O_over_H, O_depletion,
-                    star_age, star_metal, star_ion_lums,
+                    nH[cells_to_replace], C_over_H, O_over_H[cells_to_replace], O_depletion[cells_to_replace],
+                    star_age[cells_to_replace], star_metal[cells_to_replace], star_ion_lums[cells_to_replace],
                 )
 
                 # TODO: This line does the interpolation for all lines, but we redo it for every line.
