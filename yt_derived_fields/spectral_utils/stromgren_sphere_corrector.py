@@ -87,7 +87,7 @@ def stromgren_correction_pipeline(ds):
 
     def is_stromgren_unresolved(field, data):
 
-        ion_lums = data[deposit_ionLum]
+        ion_lums = data[deposit_ionLum].in_units("erg/s").d
 
         nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
         xHI = data["gas", "hydrogen_01"].d
