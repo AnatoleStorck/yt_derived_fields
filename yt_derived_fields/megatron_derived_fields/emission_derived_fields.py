@@ -137,6 +137,10 @@ def get_emission_lines(
     if ("gas", "electron_number_density") not in ds.derived_field_list:
         chem_fields.create_chemistry_derived_fields(ds, electron_number_density=True)
 
+    # generate dust depletion fields if not already present (needed for stromgren correction)
+    if fix_unres_stromgren and ("gas", "O_dep") not in ds.derived_field_list: # Check for one of the depletion fields
+        generate_dust_depletion_field(ds)
+
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
     # Can be generated using the generate_atomic_grids.py script (To contain more lines or finer interpolation)
     if coll_lines is not None or all_lines:
