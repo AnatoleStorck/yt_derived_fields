@@ -6,49 +6,65 @@ from collections import defaultdict
 pc_to_cm = 3.086e18
 
 
-def get_unresolved_stromgren_stars(df_gas, df_stars, age_bins, metal_bins, mif, ionizing_group=4, verbose=False):
+def get_unresolved_stromgren_stars(ds, age_bins, metal_bins, mif, ionizing_group=4, verbose=False):
     """
-    Finds all of the cells that need a stromgren sphere correction and returns this in the data frame
+    Finds all of the cells that need a stromgren sphere correction and returns this
+    in the data frame.
 
-    Ionizing group is the index of the ionizing bands (starting at 0)
+    Ionizing group is the index of the ionizing bands (starting at 0).
 
-    This is different from the function below in that it returns the properties of the stars rather than the 
-    cell properties. This is useful if we apply the stromgren correction to individual star particles rather than
-    what we did for sphinx. The main difference is that this assumes that star particles have smalles separate stromgren spheres in the same cell rather than one giant stromgren sphere with all of the cells
+    This is different from the function below in that it returns the properties of the 
+    stars rather than the cell properties. This is useful if we apply the stromgren
+    correction to individual star particles rather than what we did for sphinx.
+    The main difference is that this assumes that star particles have smaller separate
+    stromgren spheres in the same cell rather than one giant stromgren sphere with all
+    of the cells.
     """
-    if len(df_stars) == 0:
-        return []
 
-    stellar_metal = (2.09 * df_stars["met_O"]) + (1.06 * df_stars["met_Fe"])
-    star_filt = (df_stars["age"] <= 20.0) & (stellar_metal >= 2.e-8) # Select only young (not pop III) stars
+    ds = None
+
+    # stars
+    Nstars =  ds.object("young_pop2_stars", "ones").sum()
+
+    if Nstars < 1:
+        raise ValueError("No young stars found in the dataset")
+
+    star_pos = ds.object("young_pop2_stars", "position").in_units("Mpccm/h").d
+    star_ages = ds.object("young_pop2_stars", "age").in_units("Myr").d
+    star_masses = ds.object("young_pop2_stars", "initial_mass").in_units("Msun").d
+    star_metal = (2.09 * ds.object("young_pop2_stars", "met_O") +
+                  1.06 * ds.object("young_pop2_stars", "met_Fe")).d
     
-    if star_filt.sum() == 0:
-        return []
+    # gas
+    Ncells = ds.object("gas", "ones").sum()
+    cell_pos = ds.object("gas", "position").in_units("Mpccm/h").d
+    cell_dx = ds.object("gas", "dx").in_units("pc").d
 
-    pp = np.zeros((star_filt.sum(),2))
-    loc_ages = np.array(df_stars["age"][star_filt])
-    loc_ages[loc_ages <1.e-3] = 1e-3
-    pp[:,0] = np.log10(loc_ages) # Note that this prevents nans
-    pp[:,1] = np.log10(np.array(stellar_metal[star_filt])+1.e-40)  # eqn in rt_spectra 
+    pp = np.zeros((Nstars, 2))
+    loc_ages = star_ages
+    loc_ages[loc_ages < 1.e-3] = 1e-3           # floor the ages
+    pp[:,0] = np.log10(loc_ages)                # Note that this prevents nans
+    pp[:,1] = np.log10(star_metal + 1.e-40)     # eqn in rt_spectra 
 
     # Enforce bounds
     pp[:,0][pp[:,0] < np.log10(age_bins)[0]]  = np.log10(age_bins)[0]
     pp[:,0][pp[:,0] > np.log10(age_bins)[-1]] = np.log10(age_bins)[-1]
     pp[:,1][pp[:,1] < metal_bins[0]]  = metal_bins[0]
     pp[:,1][pp[:,1] > metal_bins[-1]] = metal_bins[-1]
-    star_ion_lums = (10.0**mif(pp)) * np.array(df_stars["initial_mass"][star_filt])[:, np.newaxis]
+
+    star_ion_lums = 10.0**mif(pp) * star_masses[:, np.newaxis]
 
     # Make the tree for the gas cells
-    if verbose: print(f"Making kd tree for {len(df_gas)} cells")
-    point_tree = spatial.cKDTree(np.array(df_gas[["x","y","z"]]))
+    if verbose: print(f"Making kd tree for {Ncells} cells")
+    point_tree = spatial.cKDTree(cell_pos)
 
     # Find the closest cells (only young star particles)
-    spos = np.zeros((star_filt.sum(),3))
-    spos[:,0] = df_stars["x"][star_filt]
-    spos[:,1] = df_stars["y"][star_filt]
-    spos[:,2] = df_stars["z"][star_filt]
+    spos = np.zeros((Nstars, 3))
+    spos[:, 0] = star_pos[:, 0]
+    spos[:, 1] = star_pos[:, 1]
+    spos[:, 2] = star_pos[:, 2]
     if verbose: print(f"Querying closest cells for {len(spos)} stars")
-    cell_dist,cell_ids = point_tree.query(spos)
+    cell_dist, cell_ids = point_tree.query(spos)
     if verbose: print(f"Finished querying position")
 
     # Join lums that are in the same cell
@@ -58,14 +74,13 @@ def get_unresolved_stromgren_stars(df_gas, df_stars, age_bins, metal_bins, mif, 
     cell_n_stars = np.zeros(len(cell_cell_ids))
     cell_star_mean_ages = np.zeros(len(cell_cell_ids))
 
-    loc_ages = np.array(df_stars["age"][star_filt])
     if verbose: print(f"Looping over all {len(cell_ids)} cell_ids")
 
 
     for i in range(len(cell_ids)):
         cell_lums[cell_cell_ids == cell_ids[i],:] += star_ion_lums[i,:]
         cell_n_stars[cell_cell_ids == cell_ids[i]] += 1
-        cell_star_mean_ages[cell_cell_ids == cell_ids[i]] += loc_ages[i]
+        cell_star_mean_ages[cell_cell_ids == cell_ids[i]] += star_ages[i]
 
     cell_star_mean_ages /= cell_n_stars
 
@@ -77,16 +92,17 @@ def get_unresolved_stromgren_stars(df_gas, df_stars, age_bins, metal_bins, mif, 
     lam_HI = 315614.0/T
     alphab = 1.269e-13 * (lam_HI**1.503) / (1. + (lam_HI/0.522)**0.47)**1.923 #cm^3 s^-1
 
-    rhos = 10.0**df_gas["nH"] # h/cc
-    HI   = df_gas["H_I"]
-    rhos *= HI
+    nH = ds.object("gas", "hydrogen_number_density").in_units("cm**-3").d
+    xHI = ds.object("gas", "hydrogen_01").d
 
+    rhos = nH * xHI
+    
     # Stromgren radius
     r_strom = (3.0 * cell_lums[:,ionizing_group:].sum(axis=1)) / (4.0 * np.pi * rhos[cell_cell_ids] * rhos[cell_cell_ids] * alphab)
     r_strom = (r_strom**(1./3.)) / pc_to_cm
     if verbose: print("Done calculating stromgren radii")
 
-    dx_pc = (10.**df_gas["dx"] / pc_to_cm)[cell_cell_ids]
+    dx_pc = cell_dx[cell_cell_ids]
     fff = r_strom < (dx_pc/2.)
 
     if fff.sum() == 0:
@@ -105,13 +121,13 @@ def get_unresolved_stromgren_stars(df_gas, df_stars, age_bins, metal_bins, mif, 
     # Start with the stellar properties
     star_header = ["initial_mass","age","metallicity","ionizing_luminosity"]
     df_strom = pd.DataFrame(np.zeros((bool_list.sum(),len(star_header))),columns=star_header)
-    df_strom["initial_mass"] = np.array(df_stars[star_filt]["initial_mass"])[bool_list]
-    df_strom["age"] = np.array(df_stars[star_filt]["age"])[bool_list]
-    df_strom["metallicity"] = np.array(stellar_metal[star_filt])[bool_list]
+    df_strom["initial_mass"] = star_masses[bool_list]
+    df_strom["age"] = star_ages[bool_list]
+    df_strom["metallicity"] = star_metal[bool_list]
     df_strom["ionizing_luminosity"] = np.log10(star_ion_lums[bool_list][:,ionizing_group:].sum(axis=1))
-    df_strom["x"] = np.array(df_stars[star_filt]["x"])[bool_list]
-    df_strom["y"] = np.array(df_stars[star_filt]["y"])[bool_list]
-    df_strom["z"] = np.array(df_stars[star_filt]["z"])[bool_list]
+    df_strom["x"] = star_pos[:, 0][bool_list]
+    df_strom["y"] = star_pos[:, 1][bool_list]
+    df_strom["z"] = star_pos[:, 2][bool_list]
 
     # Continue with the gas properties
     gas_header  = ["nH","O/H","C/H"]
@@ -142,7 +158,7 @@ def get_unresolved_stromgren_stars(df_gas, df_stars, age_bins, metal_bins, mif, 
 
 
 
-def stromgren_radius(Q,nH,T=1e4):
+def stromgren_radius(Q, nH, T=1e4):
     """
     Returns the stromgren radius in pc
     """
