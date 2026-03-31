@@ -22,7 +22,7 @@ def _resolve_cloudy_dir(data_dir: Optional[str]) -> Path:
         candidates.append(Path(data_dir))
     # Fallback onto known paths (glamdring, infinity)
     candidates.append(Path("/mnt/glacier/DATA/CLOUDY_UPDATE_APR11"))
-    candidates.append(Path("/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11"))
+    candidates.append(Path("/data122/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11"))
 
     for base in candidates:
         test_dir_1 = base / "BPASS"
@@ -31,7 +31,7 @@ def _resolve_cloudy_dir(data_dir: Optional[str]) -> Path:
             return base
 
     raise FileNotFoundError(
-        "Could not locate pyneb nebular continuum tables directory. "
+        "Could not locate CLOUDY tables directory. "
         "Pass data_dir=..., or place files under one of the known paths."
     )
 

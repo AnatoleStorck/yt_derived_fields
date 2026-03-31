@@ -44,7 +44,7 @@ def _resolve_pyneb_nebc_dir(data_dir: Optional[str]) -> Path:
         candidates.append(Path(data_dir))
     # Fallback onto known paths (glamdring, infinity)
     candidates.append(Path("/mnt/glacier/DATA/pyneb_nebc_tables"))
-    candidates.append(Path("/data100/cadiou/Megatron/DATA/pyneb_nebc_tables"))
+    candidates.append(Path("/data122/cadiou/Megatron/DATA/pyneb_nebc_tables"))
 
     for base in candidates:
         test_file = base / "neb_continuum.npy"
