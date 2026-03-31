@@ -100,6 +100,9 @@ def stromgren_correction_pipeline(ds):
 
         ion_lums = 10.0**mif(pp) * masses[:, np.newaxis]
 
+        # Take group 4 (13.6-24.6 eV) which is the relevant one for H ionization
+        ion_lums = ion_lums[:, 4]
+
         return ion_lums * u.erg / u.s # TODO: check units
 
     ds.add_field(
