@@ -77,7 +77,7 @@ def generate_dust_depletion_field(ds):
             T = data["gas", "temperature"].in_units("K").d
 
             if isinstance(data, FieldDetector):
-                return np.zeros(nH.shape) * u.erg / u.s
+                return np.zeros(nH.shape)
 
             depletion_table = np.ones(len(nH))
             filt = T < 6.0
