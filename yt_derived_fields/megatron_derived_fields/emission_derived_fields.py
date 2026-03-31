@@ -25,6 +25,10 @@ from yt_derived_fields.megatron_derived_fields import (
     chemistry_derived_fields as chem_fields,
     chemistry_data as chem_data,
 )
+from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators import (
+    format_cloudy_interpolator,
+    get_cloudy_el_interpolator,
+)
 
 _spectral_data = Path(__file__).parent.parent / "spectral_utils"
 met_data = chem_data.get_metal_data()
@@ -104,15 +108,29 @@ def generate_dust_depletion_field(ds):
             sampling_type="cell",
             display_name=f"{el} Depletion Factor",
         )
+
+
+def get_emission_lines(
+        ds,
+        coll_lines=None,
+        rec_lines=None,
+        all_lines=False,
+        fix_unres_stromgren=False,
+):
     """
-    Add emission line luminosity fields to the dataset, given line emissivity grids have been generated on disk.
+    Add emission line luminosity fields to the dataset, given line emissivity grids
+    have been generated on disk.
 
     Args:
         ds (yt.Dataset): The dataset object.
-        coll_lines (list, optional): A list of collision lines to consider. Defaults to None.
+        coll_lines (list, optional): A list of collision lines to consider.
+                                     Defaults to None.
                                      Example: ["O3-5007", "S2-6731"]
-        rec_lines (list, optional): A list of recombination lines to consider. Defaults to None.
-                                     Example: ["Lya", "Hb", "He-1640"]
+        rec_lines (list, optional): A list of recombination lines to consider.
+                                    Defaults to None.
+                                    Example: ["Lya", "Hb", "He-1640"]
+        fix_unres_stromgren (bool, optional): Replace emission from cells that have
+                                             unresolved stromgren spheres with CLOUDY models.
     """
 
     # generate chemistry fields if not already present
@@ -125,16 +143,105 @@ def generate_dust_depletion_field(ds):
         coll_line_dict = get_coll_line_dict()
     if rec_lines is not None or all_lines:
         rec_line_dict = get_rec_line_dict()
+    if fix_unres_stromgren:
+        # Get the interpolation matrix
+        # (metal, O/H, nH, ages, ionLum, C/O) --> list of line luminosities (erg/s)
+        mif_cloudy, line_list = get_cloudy_el_interpolator()
+
+        # Mapper from the cloudy line names to the field names we want to use in yt
+        line_list_map_dict = {
+                'H  1 1215.67A': "Lya",
+                'H  1 6562.80A': "Ha",
+                'H  1 4861.32A': "Hb",
+                'H  1 4340.46A': "Hg",
+                'H  1 4101.73A': "Hd",
+                'He 2 1640.41A': "He2-1640",
+                'He 2 4685.68A': "He2-4686",
+                'O  1 63.1679m': None,
+                'O  1 145.495m': None,
+                'O  1 6300.30A': "O1-6300",
+                'O  1 6363.78A': "O1-6362",
+                'O  2 3726.03A': "O2-3726",
+                'O  2 3728.81A': "O2-3728",
+                'O 2R 3726.00A': "O2-3726",
+                'O 2R 3729.00A': "O2-3728",
+                'O  2 7318.92A': "O2-7319",
+                'O  2 7319.99A': "O2-7320",
+                'O  2 7329.67A': "O2-7330",
+                'O  2 7330.73A': "O2-7331",
+                'O 2R 7332.00A': "O2-7331",
+                'O 2R 7323.00A': "O2-7320",
+                'O  3 1660.81A': "O3-1661",
+                'O  3 1666.15A': "O3-1666",
+                'O  3 4363.21A': "O3-4363",
+                'O 3R 4363.00A': "O3-4363",
+                'O 3C 4363.00A': "O3-4363",
+                'O  3 4958.91A': "O3-4959",
+                'O  3 5006.84A': "O3-5007",
+                'O  3 51.8004m': None,
+                'O  3 88.3323m': None,
+                'O  4 25.8863m': None,
+                'Ne 3 3868.76A': "Ne3-3869",
+                'Ne 3 3967.47A': "Ne3-3967",
+                'C  2 157.636m': None,
+                'C  3 1906.68A': "C3-1906",
+                'C  3 1908.73A': "C3-1908",
+                'C  4 1548.19A': "C4-1548",
+                'C  4 1550.77A': "C4-1550",
+                'N  2 5754.59A': "N2-5755",
+                'N 2R 5755.00A': "N2-5755",
+                'N  2 6548.05A': "N2-6548",
+                'N  2 6583.45A': "N2-6583",
+                'N 2R 6584.00A': "N2-6583",
+                'N  2 205.283m': None,
+                'N  2 121.769m': None,
+                'N  3 57.3238m': None,
+                'N  3 1748.65A': "N3-1749",
+                'N  3 1753.99A': "N3-1754",
+                'N  3 1746.82A': "N3-1747",
+                'N  3 1752.16A': "N3-1752",
+                'N  3 1749.67A': "N3-1750",
+                'N  4 1483.32A': "N4-1483",
+                'N  4 1486.50A': "N4-1486",
+                'N  5 1238.82A': "N5-1239",
+                'N  5 1242.80A': "N5-1243",
+                'S  2 6716.44A': "S2-6716",
+                'S  2 6730.82A': "S2-6731",
+                'S  2 4076.35A': "S2-4076",
+                'S  2 4068.60A': "S2-4069",
+                'S  3 6312.06A': None,
+                'S  3 9068.62A': None,
+                'S  3 9530.62A': None,
+                }
 
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
         def _get_coll_line_emissivity(field, data):
-            nCells = len(data["gas", "density"].to("g/cm**3").value)
+
             rho = data["gas", "density"].to("g/cm**3").value
-
-            Tgas = np.log10(data["gas", "temperature"].to("K").value)
-
+            Tgas = data["gas", "temperature"].to("K").value
             ne = data["gas", "electron_number_density"].to("cm**-3").value
+
+            # ----------------------------------------------------------
+
+            # Find the fields for stromgren sphere corrections if needed
+            if fix_unres_stromgren:
+
+                nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+                nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
+                nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
+
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
+
+                O_depletion = data["gas", "O_dep"].d
+
+                # TODO: These fields will have to be initialized somewhere
+                star_age = data["deposit", "pop2_nn_age"].in_units("Myr").d
+                star_metal = data["deposit", "pop2_nn_metallicity"].d
+                star_ion_lums = data["deposit", "pop2_nn_ionizing_luminosity"].d
+
+                cells_to_replace = data["gas", "unresolved_stromgren"]
 
             # ----------------------------------------------------------
 
@@ -148,8 +255,8 @@ def generate_dust_depletion_field(ds):
                 return np.zeros(rho.shape) * u.erg / u.s
 
             # Set up the arrays to interpolate
-            to_interp = np.zeros((nCells, 2))
-            to_interp[:, 0] = Tgas
+            to_interp = np.zeros((len(rho), 2))
+            to_interp[:, 0] = np.log10(Tgas)
             to_interp[:, 1] = np.log10(ne)
 
             # get emisitivity of cells based on T and ne
@@ -157,9 +264,27 @@ def generate_dust_depletion_field(ds):
 
             # Multiply by the electron density and ion density
             # n{el} = nO, ion = O_IV
-            loc_emis *= ne * nel * xion
+            loc_lum = ne * nel * xion
 
-            return loc_emis * u.erg / u.s / u.cm**3
+            if fix_unres_stromgren:
+                loc_lum_cloudy = np.zeros_like(loc_lum)
+
+                to_interp = format_cloudy_interpolator(
+                    np.log10(nH), C_over_H, O_over_H, O_depletion,
+                    star_age, star_metal, star_ion_lums,
+                )
+
+                # TODO: This line does the interpolation for all lines, but we redo it for every line.
+                # Can be sped up by only doing it once and storing the results.
+                all_emission_lines = 10.**mif_cloudy(to_interp)
+                line_idx = line_list_map_dict[line]
+                if line_idx is not None:
+                    line_idx = line_list.index(line_idx)
+                    loc_lum_cloudy = all_emission_lines[line_idx, :]
+
+                loc_lum[cells_to_replace] = loc_lum_cloudy
+
+            return loc_lum * u.erg / u.s / u.cm**3
 
         def _get_coll_line_lum(field, data):
             return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
@@ -182,12 +307,30 @@ def generate_dust_depletion_field(ds):
     # line in the form of "Lya", "Hb", "He-1640"
     def rec_line(ds, line):
         def _get_rec_line_emissivity(field, data):
-            nCells = len(data["gas", "density"].to("g/cm**3").value)
+
             rho = data["gas", "density"].to("g/cm**3").value
-
-            Tgas = np.log10(data["gas", "temperature"].to("K").value)
-
+            Tgas = data["gas", "temperature"].to("K").value
             ne = data["gas", "electron_number_density"].to("cm**-3").value
+
+            # ----------------------------------------------------------
+
+            # Find the fields for stromgren sphere corrections if needed
+            if fix_unres_stromgren:
+
+                nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+                nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
+                nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
+
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
+
+                O_depletion = data["gas", "O_dep"].d
+
+                star_age = data["deposit", "pop2_nn_age"].in_units("Myr").d
+                star_metal = data["deposit", "pop2_nn_metallicity"].d
+                star_ion_lums = data["deposit", "pop2_nn_ionizing_luminosity"].d
+
+                cells_to_replace = data["gas", "unresolved_stromgren"]
 
             # ----------------------------------------------------------
 
@@ -203,13 +346,13 @@ def generate_dust_depletion_field(ds):
                 return np.zeros(rho.shape) * u.erg / u.s
 
             # Set up the arrays to interpolate
-            to_interp = np.zeros((nCells, 2))
-            to_interp[:, 0] = Tgas
+            to_interp = np.zeros((len(rho), 2))
+            to_interp[:, 0] = np.log10(Tgas)
             to_interp[:, 1] = np.log10(ne)
 
             min_temp = 10.0
 
-            to_interp_ch = 10.0 ** np.array(Tgas)
+            to_interp_ch = np.array(Tgas)
             to_interp_ch[to_interp_ch < min_temp] = min_temp
             to_interp_ch[to_interp_ch > 1e9] = 1e9
 
@@ -222,7 +365,27 @@ def generate_dust_depletion_field(ds):
             loc_rec_lum = loc_rec_emis  # erg/s/cm^3
             loc_col_lum = loc_col_emis  # erg/s/cm^3
 
-            return (loc_rec_lum + loc_col_lum) * u.erg / u.s / u.cm**3
+            loc_lum = loc_rec_lum + loc_col_lum
+
+            if fix_unres_stromgren:
+                loc_lum_cloudy = np.zeros_like(loc_lum)
+
+                to_interp = format_cloudy_interpolator(
+                    np.log10(nH), C_over_H, O_over_H, O_depletion,
+                    star_age, star_metal, star_ion_lums,
+                )
+
+                # TODO: This line does the interpolation for all lines, but we redo it for every line.
+                # Can be sped up by only doing it once and storing the results.
+                all_emission_lines = 10.**mif_cloudy(to_interp)
+                line_idx = line_list_map_dict[line]
+                if line_idx is not None:
+                    line_idx = line_list.index(line_idx)
+                    loc_lum_cloudy = all_emission_lines[line_idx, :]
+
+                loc_lum[cells_to_replace] = loc_lum_cloudy
+
+            return loc_lum * u.erg / u.s / u.cm**3
 
         def _get_rec_line_lum(field, data):
             return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
