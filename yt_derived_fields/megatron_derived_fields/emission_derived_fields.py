@@ -76,7 +76,7 @@ def generate_dust_depletion_field(ds):
             nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
             T = data["gas", "temperature"].in_units("K").d
 
-            depletion_table = np.ones((len(nH),len(elements)))
+            depletion_table = np.ones((len(nH)))
             filt = T < 6.0
 
             x = 12.0 + (nO - nH)
