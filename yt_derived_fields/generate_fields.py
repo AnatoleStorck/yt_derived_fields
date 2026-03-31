@@ -9,11 +9,16 @@ from yt_derived_fields.megatron_derived_fields import (
     stars_derived_fields,
 )
 
+from yt_derived_fields.spectral_utils import (
+    stromgren_sphere_corrector,
+)
+
 def create_derived_fields(
     ds,
     simple_ne=False,
     H2_cooling="moseley",
     pop3_stars=False,
+    stromgren_correction=True,
     parallel=True,
     ):
     """
@@ -36,6 +41,12 @@ def create_derived_fields(
     # Create cooling derived fields
     cooling_derived_fields.create_cooling_derived_fields(ds, H2_cooling=H2_cooling)
 
+    # Create star derived fields
+    stars_derived_fields.create_star_derived_fields(ds, pop3=pop3_stars, parallel=parallel)
+
+    if stromgren_correction:
+        stromgren_sphere_corrector.stromgren_correction_pipeline(ds)
+
     # Create emission derived fields
     emission_derived_fields.get_emission_lines(ds, all_lines=True)
 
@@ -44,6 +55,3 @@ def create_derived_fields(
 
     # Create radiative derived fields
     radiative_derived_fields.create_rt_derived_fields(ds)
-
-    # Create star derived fields
-    stars_derived_fields.create_star_derived_fields(ds, pop3=pop3_stars, parallel=parallel)
