@@ -144,7 +144,7 @@ def stromgren_correction_pipeline(ds):
     ds.add_field(
         name=("gas", "unresolved_stromgren"),
         function=is_stromgren_unresolved,
-        units="dimensionless",
+        units="auto",
         sampling_type="cell",
         display_name="Stromgren Sphere is Unresolved"
     )
