@@ -1,6 +1,8 @@
 import numpy as np
 
-from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators import format_cloudy_interpolator
+from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators import (
+    format_cloudy_interpolator,
+)
 
 
 def get_all_dust_depletions(metal):
@@ -43,7 +45,7 @@ def get_all_dust_depletions(metal):
     return depletion_dict
 
 
-def get_cloudy_emission_line_luminosities(df,mif_cloudy,line_list):
+def get_cloudy_emission_line_luminosities(df, mif_cloudy, line_list):
     """
     Gets the emission line luminosities for a given cloudy interpolator
     """
@@ -115,7 +117,7 @@ def get_cloudy_emission_line_luminosities(df,mif_cloudy,line_list):
 
 
 
-def replace_emission(df_emis,df_strom,replace_lines,line_list):
+def replace_emission(df_emis, df_strom, replace_lines, line_list):
     """
     Function to replace the naive emission with the stromgren corrected one
        'C3-1908', 'C3-1906', 'C4-1548', 'C4-1550', 'O1-6300', 'O1-6362',
