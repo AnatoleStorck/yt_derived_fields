@@ -428,7 +428,7 @@ def get_emission_lines(
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
                     loc_lum_cloudy = get_cloudy_line_luminosity(
-                        all_emission_lines, line_idx, len(loc_lum)
+                        all_emission_lines, line_idx, int(cells_to_replace.sum())
                     )
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
