@@ -240,9 +240,6 @@ def get_emission_lines(
                 nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
                 nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
 
-                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
-                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
-
                 O_depletion = data["gas", "O_dep"]
 
                 star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
@@ -276,6 +273,9 @@ def get_emission_lines(
 
             if fix_unres_stromgren:
                 loc_lum_cloudy = np.zeros_like(loc_lum)
+
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
 
                 to_interp = format_cloudy_interpolator(
                     np.log10(nH), C_over_H, O_over_H, O_depletion,
@@ -329,9 +329,6 @@ def get_emission_lines(
                 nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
                 nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
 
-                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
-                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
-
                 O_depletion = data["gas", "O_dep"]
 
                 star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
@@ -377,6 +374,9 @@ def get_emission_lines(
 
             if fix_unres_stromgren:
                 loc_lum_cloudy = np.zeros_like(loc_lum)
+
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
 
                 to_interp = format_cloudy_interpolator(
                     np.log10(nH), C_over_H, O_over_H, O_depletion,
