@@ -49,6 +49,12 @@ def stromgren_correction_pipeline(ds):
         if isinstance(data, FieldDetector):
             return np.zeros(metal.shape) * u.erg / u.s
 
+        # get the interpolation matrix
+        # (age, metal) --> ionizing luminosity (erg/s) # TODO: check units
+        age_bins, metal_bins, mif = load_SED_from_sim(
+            top_dir="/mnt/glacier/DATA/SEDtables", ngroups=8, SED_isEgy=True
+        )
+
         pp = np.zeros((int(Nstars), 2))
         loc_ages = ages
         loc_ages[loc_ages < 1.e-3] = 1e-3           # floor the ages
@@ -60,12 +66,6 @@ def stromgren_correction_pipeline(ds):
         pp[:,0][pp[:,0] > np.log10(age_bins)[-1]] = np.log10(age_bins)[-1]
         pp[:,1][pp[:,1] < metal_bins[0]]  = metal_bins[0]
         pp[:,1][pp[:,1] > metal_bins[-1]] = metal_bins[-1]
-
-        # get the interpolation matrix
-        # (age, metal) --> ionizing luminosity (erg/s) # TODO: check units
-        age_bins, metal_bins, mif = load_SED_from_sim(
-            top_dir="/mnt/glacier/DATA/SEDtables", ngroups=8, SED_isEgy=True
-        )
 
         ion_lums = 10.0**mif(pp) * masses[:, np.newaxis]
 
