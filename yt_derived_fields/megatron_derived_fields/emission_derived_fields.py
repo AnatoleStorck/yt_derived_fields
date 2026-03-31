@@ -418,7 +418,7 @@ def get_emission_lines(
                 C_over_H = np.log10(nC[cells_to_replace]) - np.log10(nH[cells_to_replace]) - np.log10(2.69E-04) # depletion
 
                 to_interp = format_cloudy_interpolator(
-                    nH[cells_to_replace], C_over_H, O_over_H[cells_to_replace], O_depletion[cells_to_replace],
+                    nH[cells_to_replace], C_over_H, O_over_H, O_depletion[cells_to_replace],
                     star_age[cells_to_replace], star_metal[cells_to_replace], star_ion_lums[cells_to_replace],
                 )
 
