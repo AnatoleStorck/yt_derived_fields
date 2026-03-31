@@ -37,7 +37,7 @@ def _resolve_SED_dir(data_dir: Optional[str]) -> Path:
     candidates.append(Path("/data122/cadiou/Megatron/DATA/SEDtables"))
 
     for base in candidates:
-        test_file = base / "SEDtable1.lis"
+        test_file = base / "SEDtable1.list"
         if test_file.exists():
             return base
 
