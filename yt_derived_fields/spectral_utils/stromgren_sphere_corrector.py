@@ -100,7 +100,7 @@ def stromgren_correction_pipeline(ds):
 
         ion_lums = 10.0**mif(pp) * masses[:, np.newaxis]
 
-        return ion_lums
+        return ion_lums * u.erg / u.s # TODO: check units
 
     ds.add_field(
         name=("young_pop2", "ionizing_luminosity"),
