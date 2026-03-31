@@ -5,7 +5,37 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import RegularGridInterpolator
 
-path_cloudy_update = "/mnt/glacier/DATA/CLOUDY_UPDATE_APR11"
+from pathlib import Path
+from typing import Optional
+from functools import cache
+
+@cache
+def _resolve_cloudy_dir(data_dir: Optional[str]) -> Path:
+    """
+    Resolve directory containing CLOUDY tables.
+    Tries:
+      - explicit data_dir if provided
+      - known fallbacks
+    """
+    candidates: list[Path] = []
+    if data_dir:
+        candidates.append(Path(data_dir))
+    # Fallback onto known paths (glamdring, infinity)
+    candidates.append(Path("/mnt/glacier/DATA/CLOUDY_UPDATE_APR11"))
+    candidates.append(Path("/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11"))
+
+    for base in candidates:
+        test_file = base / "neb_continuum.npy"
+        if test_file.exists():
+            return base
+
+    raise FileNotFoundError(
+        "Could not locate pyneb nebular continuum tables directory. "
+        "Pass data_dir=..., or place files under one of the known paths."
+    )
+
+
+path_cloudy_update = _resolve_cloudy_dir(None)
 
 path_cloudy_interp_pop2 = f"{path_cloudy_update}/BPASS"
 path_cloudy_interp_pop3 = f"{path_cloudy_update}/MEGATRON_cloudy_models_popIII_nip"
