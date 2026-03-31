@@ -374,7 +374,7 @@ def get_emission_lines(
                 star_metal = data["deposit", "young_pop2_avg_metallicity"]
                 star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
 
-                cells_to_replace = data["gas", "unresolved_stromgren"].d
+                cells_to_replace = data["gas", "unresolved_stromgren"]
 
             # ----------------------------------------------------------
 
