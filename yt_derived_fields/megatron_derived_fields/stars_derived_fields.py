@@ -85,6 +85,7 @@ def _initialize_star_metallicity(ds):
         name=("star", "metallicity"),
         function=_star_metallicity,
         force_override=True,
+        units="",
         sampling_type="particle",
         display_name="Star metallicity",
     )
