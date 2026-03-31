@@ -243,11 +243,11 @@ def get_emission_lines(
                 O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
                 C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
 
-                O_depletion = data["gas", "O_dep"].d
+                O_depletion = data["gas", "O_dep"]
 
                 # TODO: These fields will have to be initialized somewhere
                 star_age = data["deposit", "pop2_nn_age"].in_units("Myr").d
-                star_metal = data["deposit", "pop2_nn_metallicity"].d
+                star_metal = data["deposit", "pop2_nn_metallicity"]
                 star_ion_lums = data["deposit", "pop2_nn_ionizing_luminosity"].d
 
                 cells_to_replace = data["gas", "unresolved_stromgren"]
@@ -333,10 +333,10 @@ def get_emission_lines(
                 O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04) # depletion
                 C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04) # depletion
 
-                O_depletion = data["gas", "O_dep"].d
+                O_depletion = data["gas", "O_dep"]
 
                 star_age = data["deposit", "pop2_nn_age"].in_units("Myr").d
-                star_metal = data["deposit", "pop2_nn_metallicity"].d
+                star_metal = data["deposit", "pop2_nn_metallicity"]
                 star_ion_lums = data["deposit", "pop2_nn_ionizing_luminosity"].d
 
                 cells_to_replace = data["gas", "unresolved_stromgren"]
