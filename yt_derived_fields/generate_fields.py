@@ -48,7 +48,7 @@ def create_derived_fields(
         stromgren_sphere_corrector.stromgren_correction_pipeline(ds)
 
     # Create emission derived fields
-    emission_derived_fields.get_emission_lines(ds, all_lines=True)
+    emission_derived_fields.get_emission_lines(ds, all_lines=True, fix_unres_stromgren=stromgren_correction)
 
     # Create nebular continuum derived fields
     nebular_continuum_fields.create_nebular_continuum_derived_fields(ds, parallel=parallel)
