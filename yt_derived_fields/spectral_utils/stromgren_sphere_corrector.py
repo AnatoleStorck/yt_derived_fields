@@ -137,6 +137,9 @@ def stromgren_correction_pipeline(ds):
 
         r_strom = np.cbrt((3.0 * ion_lums) / (4.0 * np.pi * nHI**2 * alphab)) * u.cm
 
+        print("r_strom (pc): ", r_strom.to("pc"))
+        print("dx (pc): ", dx)
+
         bool_arr = 2 * r_strom.to("pc") < dx
 
         return bool_arr
