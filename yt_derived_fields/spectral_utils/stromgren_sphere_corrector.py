@@ -44,7 +44,7 @@ def stromgren_correction_pipeline(ds):
 
         ages = data["young_pop2", "age"].in_units("Myr").d
         masses = data["young_pop2", "particle_initial_mass"].in_units("Msun").d
-        metal = data["young_pop2", "metallicity"].d
+        metal = data["young_pop2", "metallicity"]
 
         if isinstance(data, FieldDetector):
             return np.zeros(metal.shape) * u.erg / u.s
