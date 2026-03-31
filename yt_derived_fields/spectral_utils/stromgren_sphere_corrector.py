@@ -6,6 +6,7 @@
 # So we want to replace the emission of these cells with the emission from a cloudy model
 # with the same ionization parameter and metallicity as the star(s) in the cell.
 
+import yt
 import numpy as np
 
 from yt import units as u
@@ -22,6 +23,20 @@ def stromgren_correction_pipeline(ds):
     It will return a dataframe with the corrected emission line luminosities for
     each gas cell.
     """
+
+    def young_pop2_filter(field, data):
+        
+        ages = data["pop2", "age"].in_units("Myr")
+
+        return ages < 10.0 * u.Myr
+    yt.add_particle_filter(
+        "young_pop2",
+        function=young_pop2_filter,
+        requires=["age"],
+        filtered_type="star",
+    )
+    if "young_pop2" not in ds.filtered_particle_types:
+        ds.add_particle_filter("young_pop2")
 
     def star_ion_lums(field, data):
 
