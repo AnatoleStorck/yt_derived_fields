@@ -99,8 +99,6 @@ def generate_dust_depletion_field(ds):
 
             y = 10.0**y # This is the Gas to Dust mass ratio
 
-            print(depletion_table.shape, y.shape, nH.shape)
-
             # Fill table with depletions
             depletion_table[filt] = 1.0 - ( (1.0 - dep) * np.minimum(1.0, 162.0/y[filt]) )
 
