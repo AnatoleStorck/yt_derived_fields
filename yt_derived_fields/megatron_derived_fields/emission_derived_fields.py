@@ -60,8 +60,50 @@ def get_rec_line_dict() -> dict[str, Any]:
             "in the spectral_utils folder."
         )
 
+def generate_dust_depletion_field(ds):
 
-def get_emission_lines(ds, coll_lines=None, rec_lines=None, all_lines=False):
+    elements = ["Fe", "O", "N", "C", "Mg", "Ne", "Si", "S"," Ca"," CO"]
+    dep_solar = [0.01, 0.728, 0.603, 0.501, 0.163, 1.0, 0.1, 1.0, 0.003, 1.0]
+
+    for el, dep in zip(elements, dep_solar):
+        def _get_depletion(field, data):
+
+            nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+            nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
+            T = data["gas", "temperature"].in_units("K").d
+
+            depletion_table = np.ones((len(nH),len(elements)))
+            filt = T < 6.0
+
+            x = 12.0 + (nO - nH)
+
+            # Broken powerlaw model from RR14 (consistent with Taysun's Lya feedback)
+            # See Table 1 of: https://www.aanda.org/articles/aa/pdf/2014/03/aa22803-13.pdf
+            # We use the XCO,Z case
+            a  = 2.21
+            aH = 1.00
+            b  = 0.96
+            aL = 3.10
+            xt = 8.10
+            xs = 8.69
+
+            y = a + (aH * (xs - x))
+            y[x<=xt] = b + (aL * (xs - x[x<=xt]))
+
+            y = 10.0**y # This is the Gas to Dust mass ratio
+
+            # Fill table with depletions
+            depletion_table[filt] = 1.0 - ( (1.0 - dep) * np.minimum(1.0, 162.0/y[filt]) )
+
+            return depletion_table
+
+        ds.add_field(
+            name=("gas", f"{el}_dep"),
+            function=_get_depletion,
+            units="",
+            sampling_type="cell",
+            display_name=f"{el} Depletion Factor",
+        )
     """
     Add emission line luminosity fields to the dataset, given line emissivity grids have been generated on disk.
 
