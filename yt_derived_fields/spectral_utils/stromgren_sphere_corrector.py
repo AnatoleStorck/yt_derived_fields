@@ -143,12 +143,12 @@ def stromgren_correction_pipeline(ds):
         # If r_strom > 0, then check if it's smaller than dx/2 (i.e. unresolved)
         bool_arr[r_strom.to("pc") > 0] = r_strom.to("pc")[r_strom.to("pc") > 0] < (dx[r_strom.to("pc") > 0] / 2.0)
 
-        return bool_arr
+        return np.array(bool_arr)
 
     ds.add_field(
         name=("gas", "unresolved_stromgren"),
         function=is_stromgren_unresolved,
-        units="auto",
+        units="",
         sampling_type="cell",
         display_name="Stromgren Sphere is Unresolved"
     )
