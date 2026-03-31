@@ -25,8 +25,9 @@ def _resolve_cloudy_dir(data_dir: Optional[str]) -> Path:
     candidates.append(Path("/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11"))
 
     for base in candidates:
-        test_file = base / "neb_continuum.npy"
-        if test_file.exists():
+        test_dir_1 = base / "BPASS"
+        test_dir_2 = base / "MEGATRON_cloudy_models_popIII_nip"
+        if test_dir_1.exists() and test_dir_2.exists():
             return base
 
     raise FileNotFoundError(
