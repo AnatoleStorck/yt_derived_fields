@@ -309,6 +309,9 @@ def apply_stromgren_correction(
         "ionizing_luminosity": np.log10(star_ion_lums[cells_to_replace]),
     }
 
+    print ("Applying stromgren correction to", len(df_strom), "cells")
+    print (df_strom)
+
     to_interpolate = format_cloudy_interpolator(df_strom)
     replace_emission_lines = 10.**mif_cloudy(to_interpolate)
     replace_emission_lines = rescale_emission(df_strom, replace_emission_lines, line_list)

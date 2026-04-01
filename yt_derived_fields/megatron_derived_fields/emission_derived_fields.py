@@ -264,14 +264,6 @@ def get_emission_lines(
                 Ne_over_H = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)
                 S_over_H = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)
 
-                print(f"nH: {nH} with shape {nH.shape}")
-                print(f"C/H: {C_over_H} with shape {C_over_H.shape}")
-                print(f"O/H: {O_over_H} with shape {O_over_H.shape}")
-                print(f"O depletion: {O_depletion} with shape {O_depletion.shape}")
-                print(f"Star age: {star_age} with shape {star_age.shape}")
-                print(f"Star metal: {star_metal} with shape {star_metal.shape}")
-                print(f"Star ion lum: {star_ion_lums} with shape {star_ion_lums.shape}")
-
                 all_emission_lines = apply_stromgren_correction(
                     cells_to_replace,
                     nH, nO, nC, nN, nNe, nS,
