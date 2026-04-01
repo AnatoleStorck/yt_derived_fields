@@ -30,6 +30,11 @@ from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators i
     get_cloudy_el_interpolator,
 )
 
+from yt_derived_fields.spectral_utils.stromgren_sphere_corrector import (
+    apply_stromgren_correction,
+    get_line_list_map_dict,
+)
+
 _spectral_data = Path(__file__).parent.parent / "spectral_utils"
 met_data = chem_data.get_metal_data()
 prim_data = chem_data.get_prim_data()
@@ -112,109 +117,6 @@ def generate_dust_depletion_field(ds):
             display_name=f"{el} Depletion Factor",
         )
 
-def get_all_dust_depletions(metal):
-
-    elements = [
-        "Iron","Oxygen","Nitrogen","Carbon","Magnesium","Neon","Silicon","Sulphur","Calcium"
-    ]
-    dep_solar = [
-        0.01, 0.728, 0.603, 0.501, 0.163, 1.0, 0.1, 1.0, 0.003, 1.0
-    ]
-
-    # Broken powerlaw model from RR14 (consistent with Taysun's Lya feedback)
-    # See Table 1 of: https://www.aanda.org/articles/aa/pdf/2014/03/aa22803-13.pdf
-    # We use the XCO,Z case
-    a  = 2.21
-    aH = 1.00
-    b  = 0.96
-    aL = 3.10
-    xt = 8.10
-    xs = 8.69
-
-    x = xs + metal
-    x = min(x,xs+np.log10(3.0)) # Limit metallicity to 3x solar for the dust computation
-
-    y = a + (aH * (xs - x))
-    if (x <= xt):
-        y = b + (aL * (xs - x))
-
-    y = 10.0**y # This is the Gas to Dust mass ratio
-
-    depletion_dict = {
-            elements[i]: dep_solar[i] for i in range(len(elements))
-            }
-
-    for el in depletion_dict.keys():
-        d = depletion_dict[el]
-        depletion = 1.0 - ( (1.0 - d) * min(1.0,162.0/y) )
-        depletion_dict[el] = depletion
-
-    return depletion_dict
-
-def rescaling_interpolator(
-        line_list, cells_to_replace, all_emission_lines,
-        O_over_H_log, O_depletion,
-        C_over_H_log, C_depletion,
-        N_over_H_log, N_depletion,
-        Ne_over_H_log, Ne_depletion,
-        S_over_H_log, S_depletion,
-        star_metal, star_ion_lums,
-):
-
-    # Rescale in case we are above or below the gas metallicity bounds
-    tmp = np.array(O_over_H_log + O_depletion - np.log10(star_metal / 0.014))
-    idx_oxygen = [i for i,j in enumerate(line_list) if j[0]=="O"]
-    n_rows = all_emission_lines.shape[0]
-    rescale = np.ones(n_rows)
-    rescale[tmp < -3.0] = (10.**tmp[tmp < -3.0]) / (10.**-3.0)
-    rescale[tmp > 4.0] = (10.**tmp[tmp > 4.0]) / (10.**4.0)
-    all_emission_lines[:,idx_oxygen] *= rescale[:, np.newaxis]
-
-    # Rescale the carbon lines in case of bounds errors
-    idx_carbon = [i for i,j in enumerate(line_list) if j[0]=="C"]
-    C_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Carbon"] for kk in O_over_H_log + O_depletion])) # Dust depletion (Carbon)
-    tmp1 = np.array(C_over_H_log - O_over_H_log)
-    tmp1[tmp1 < -3.0] = -3.0
-    tmp1[tmp1 > 1.0] = 1.0
-    C_over_H_cloudy += np.log10(2.69E-04) + O_over_H_log + O_depletion + tmp1 
-    tmp = np.array(C_over_H_log + C_depletion + np.log10(2.69E-04))
-    rescale = np.array(tmp / C_over_H_cloudy)
-    all_emission_lines[:,idx_carbon] *= rescale[:, np.newaxis]
-
-    # Rescale nitrogen by deviation from solar
-    idx_nitrogen = [i for i,j in enumerate(line_list) if j[0]=="N"]
-    N_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Nitrogen"] for kk in O_over_H_log + O_depletion])) # Dust depletion (Carbon)
-    N_over_H_cloudy += np.log10(6.76E-05) + O_over_H_log + O_depletion
-    tmp = np.array(N_over_H_log + N_depletion + np.log10(6.76E-05))
-    rescale = np.array(10.**(tmp - N_over_H_cloudy))
-    all_emission_lines[:,idx_nitrogen] *= rescale[:, np.newaxis]
-
-    # Rescale neon by deviation from solar
-    idx_neon = [i for i,j in enumerate(line_list) if j[:2]=="Ne"]
-    Ne_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Neon"] for kk in O_over_H_log + O_depletion])) # Dust depletion (Carbon)
-    Ne_over_H_cloudy += np.log10(8.51E-05) + O_over_H_log + O_depletion
-    tmp = np.array(Ne_over_H_log + Ne_depletion + np.log10(8.51E-05))
-    rescale = np.array(10.**(tmp - Ne_over_H_cloudy))
-    all_emission_lines[:,idx_neon] *= rescale[:, np.newaxis]
-
-    # Rescale sulfur by deviation from solar
-    idx_sulfur = [i for i,j in enumerate(line_list) if j[:2]=="S "]
-    S_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Sulphur"] for kk in O_over_H_log + O_depletion])) # Dust depletion (Carbon)
-    S_over_H_cloudy += np.log10(1.32E-05) + O_over_H_log + O_depletion
-    tmp = np.array(S_over_H_log + S_depletion + np.log10(1.32E-05))
-    rescale = np.array(10.**(tmp - S_over_H_cloudy))
-    all_emission_lines[:,idx_sulfur] *= rescale[:, np.newaxis]
-
-    # Rescale by Q if out of bounds
-    # Note that this isn't exactly correct but I feel uncomfortable with too high Q
-    rescale = np.ones(n_rows)
-    tmp = np.log10(star_ion_lums)
-    rescale[tmp < 46.5] = 10.**(tmp[tmp < 46.5] - 46.5)
-    rescale[tmp > 54.5] = 10.**(tmp[tmp > 54.5] - 54.5)
-    all_emission_lines *= rescale[:, np.newaxis]
-
-    return all_emission_lines
-
 def get_emission_lines(
         ds,
         coll_lines=None,
@@ -256,72 +158,8 @@ def get_emission_lines(
         # Get the interpolation matrix
         # (metal, O/H, nH, ages, ionLum, C/O) --> list of line luminosities (erg/s)
         mif_cloudy, line_list = get_cloudy_el_interpolator()
-
         # Mapper from the cloudy line names to the field names we want to use in yt
-        line_list_map_dict = {
-                'H  1 1215.67A': "Lya",
-                'H  1 6562.80A': "Ha",
-                'H  1 4861.32A': "Hb",
-                'H  1 4340.46A': "Hg",
-                'H  1 4101.73A': "Hd",
-                'He 2 1640.41A': "He2-1640",
-                'He 2 4685.68A': "He2-4686",
-                'O  1 63.1679m': None,
-                'O  1 145.495m': None,
-                'O  1 6300.30A': "O1-6300",
-                'O  1 6363.78A': "O1-6362",
-                'O  2 3726.03A': "O2-3726",
-                'O  2 3728.81A': "O2-3728",
-                'O 2R 3726.00A': "O2-3726",
-                'O 2R 3729.00A': "O2-3728",
-                'O  2 7318.92A': "O2-7319",
-                'O  2 7319.99A': "O2-7320",
-                'O  2 7329.67A': "O2-7330",
-                'O  2 7330.73A': "O2-7331",
-                'O 2R 7332.00A': "O2-7331",
-                'O 2R 7323.00A': "O2-7320",
-                'O  3 1660.81A': "O3-1661",
-                'O  3 1666.15A': "O3-1666",
-                'O  3 4363.21A': "O3-4363",
-                'O 3R 4363.00A': "O3-4363",
-                'O 3C 4363.00A': "O3-4363",
-                'O  3 4958.91A': "O3-4959",
-                'O  3 5006.84A': "O3-5007",
-                'O  3 51.8004m': None,
-                'O  3 88.3323m': None,
-                'O  4 25.8863m': None,
-                'Ne 3 3868.76A': "Ne3-3869",
-                'Ne 3 3967.47A': "Ne3-3967",
-                'C  2 157.636m': None,
-                'C  3 1906.68A': "C3-1906",
-                'C  3 1908.73A': "C3-1908",
-                'C  4 1548.19A': "C4-1548",
-                'C  4 1550.77A': "C4-1550",
-                'N  2 5754.59A': "N2-5755",
-                'N 2R 5755.00A': "N2-5755",
-                'N  2 6548.05A': "N2-6548",
-                'N  2 6583.45A': "N2-6583",
-                'N 2R 6584.00A': "N2-6583",
-                'N  2 205.283m': None,
-                'N  2 121.769m': None,
-                'N  3 57.3238m': None,
-                'N  3 1748.65A': "N3-1749",
-                'N  3 1753.99A': "N3-1754",
-                'N  3 1746.82A': "N3-1747",
-                'N  3 1752.16A': "N3-1752",
-                'N  3 1749.67A': "N3-1750",
-                'N  4 1483.32A': "N4-1483",
-                'N  4 1486.50A': "N4-1486",
-                'N  5 1238.82A': "N5-1239",
-                'N  5 1242.80A': "N5-1243",
-                'S  2 6716.44A': "S2-6716",
-                'S  2 6730.82A': "S2-6731",
-                'S  2 4076.35A': "S2-4076",
-                'S  2 4068.60A': "S2-4069",
-                'S  3 6312.06A': None,
-                'S  3 9068.62A': None,
-                'S  3 9530.62A': None,
-                }
+        line_list_map_dict = get_line_list_map_dict()
 
         # Build a robust lookup from yt line names (e.g. "Ha") to CLOUDY line-list indices.
         # Some yt names can map to multiple CLOUDY aliases; keep the first valid entry.
@@ -419,151 +257,24 @@ def get_emission_lines(
             loc_lum = ne * nel * xion
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                nH = nH[cells_to_replace]
-                nO = nO[cells_to_replace]
-                nC = nC[cells_to_replace]
-                nN = nN[cells_to_replace]
-                nNe = nNe[cells_to_replace]
-                nS = nS[cells_to_replace]
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)
+                N_over_H = np.log10(nN) - np.log10(nH) - np.log10(6.76E-05)
+                Ne_over_H = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)
+                S_over_H = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)
 
-                O_depletion = O_depletion[cells_to_replace]
-                C_depletion = C_depletion[cells_to_replace]
-                N_depletion = N_depletion[cells_to_replace]
-                Ne_depletion = Ne_depletion[cells_to_replace]
-                S_depletion = S_depletion[cells_to_replace]
+                print(nH, C_over_H, O_over_H, O_depletion, star_age, star_metal, star_ion_lums)
 
-                star_age = star_age[cells_to_replace]
-                star_metal = star_metal[cells_to_replace]
-                star_ion_lums = star_ion_lums[cells_to_replace]
-
-                O_over_H_log = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)     # depletion
-                C_over_H_log = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)     # depletion
-                N_over_H_log = np.log10(nN) - np.log10(nH) - np.log10(6.76E-05)     # depletion
-                Ne_over_H_log = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)   # depletion
-                S_over_H_log = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)     # depletion
-
-                print(nH, C_over_H_log, O_over_H_log, O_depletion, star_age, star_metal, star_ion_lums)
-
-                to_interp = format_cloudy_interpolator(
-                    nH, C_over_H_log, O_over_H_log, O_depletion,
+                all_emission_lines = apply_stromgren_correction(
+                    cells_to_replace,
+                    nH, nO, nC, nN, nNe, nS,
+                    O_over_H, C_over_H, N_over_H, Ne_over_H, S_over_H,
+                    O_depletion, C_depletion, N_depletion, Ne_depletion, S_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
 
-                # TODO: This line does the interpolation for all lines, but we redo it for every line.
-                # Can be sped up by only doing it once and storing the results.
-                all_emission_lines = 10.**mif_cloudy(to_interp)
-
                 print(all_emission_lines[:, 13])
-
-                all_emission_lines = rescaling_interpolator(
-                    line_list, cells_to_replace, all_emission_lines,
-                    O_over_H_log, O_depletion,
-                    C_over_H_log, C_depletion,
-                    N_over_H_log, N_depletion,
-                    Ne_over_H_log, Ne_depletion,
-                    S_over_H_log, S_depletion,
-                    star_metal, star_ion_lums,
-                )
-
-                print(all_emission_lines[:, 13])
-
-                nan_mask = np.isnan(all_emission_lines).any(axis=1)
-                if nan_mask.any():
-                    idx_nan = np.where(nan_mask)[0]
-
-                    # First iteration
-                    tmp_star_age = star_age[nan_mask] * 10 # Try updating the age
-
-                    to_interp = format_cloudy_interpolator(
-                        nH[nan_mask], C_over_H_log[nan_mask], O_over_H_log[nan_mask], O_depletion[nan_mask],
-                        tmp_star_age, star_metal[nan_mask], star_ion_lums[nan_mask],
-                    )
-                    all_emission_lines_tmp = 10.**mif_cloudy(to_interp)
-                    print(all_emission_lines_tmp[:, 13])
-                    all_emission_lines_tmp = rescaling_interpolator(
-                        line_list, cells_to_replace, all_emission_lines_tmp,
-                        O_over_H_log[nan_mask], O_depletion[nan_mask],
-                        C_over_H_log[nan_mask], C_depletion[nan_mask],
-                        N_over_H_log[nan_mask], N_depletion[nan_mask],
-                        Ne_over_H_log[nan_mask], Ne_depletion[nan_mask],
-                        S_over_H_log[nan_mask], S_depletion[nan_mask],
-                        star_metal[nan_mask], star_ion_lums[nan_mask],
-                    )
-                    print(all_emission_lines_tmp[:, 13])
-
-                    nan_mask_second = np.isnan(all_emission_lines_tmp).any(axis=1)
-                    if nan_mask_second.any():
-                        idx_nan_second = np.where(nan_mask_second)[0]
-
-                        # Second iteration, updating the subset which are still NaN with older age
-                        tmp_star_age_second = tmp_star_age[nan_mask_second] * 10
-                        to_interp = format_cloudy_interpolator(
-                            nH[nan_mask][nan_mask_second], C_over_H_log[nan_mask][nan_mask_second], O_over_H_log[nan_mask][nan_mask_second], O_depletion[nan_mask][nan_mask_second],
-                            tmp_star_age_second, star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
-                        )
-                        all_emission_lines_tmp_second = 10.**mif_cloudy(to_interp)
-                        print(all_emission_lines_tmp_second[:, 13])
-                        all_emission_lines_tmp_second = rescaling_interpolator(
-                            line_list, cells_to_replace, all_emission_lines_tmp_second,
-                            O_over_H_log[nan_mask][nan_mask_second], O_depletion[nan_mask][nan_mask_second],
-                            C_over_H_log[nan_mask][nan_mask_second], C_depletion[nan_mask][nan_mask_second],
-                            N_over_H_log[nan_mask][nan_mask_second], N_depletion[nan_mask][nan_mask_second],
-                            Ne_over_H_log[nan_mask][nan_mask_second], Ne_depletion[nan_mask][nan_mask_second],
-                            S_over_H_log[nan_mask][nan_mask_second], S_depletion[nan_mask][nan_mask_second],
-                            star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
-                        )
-                        print(all_emission_lines_tmp_second[:, 13])
-                        all_emission_lines_tmp[nan_mask_second] = all_emission_lines_tmp_second
-
-                        nan_mask_third = np.isnan(all_emission_lines_tmp).any(axis=1)
-                        if nan_mask_third.any():
-                            idx_nan_third = np.where(nan_mask_third)[0]
-
-                            # Third iteration, updating the subset which are still NaN with older age
-                            tmp_star_age_third = tmp_star_age_second[nan_mask_third] * 10
-                            to_interp = format_cloudy_interpolator(
-                                nH[nan_mask][nan_mask_second][nan_mask_third], C_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                tmp_star_age_third, star_metal[nan_mask][nan_mask_second][nan_mask_third], star_ion_lums[nan_mask][nan_mask_second][nan_mask_third],
-                            )
-                            all_emission_lines_tmp_third = 10.**mif_cloudy(to_interp)
-                            all_emission_lines_tmp_third = rescaling_interpolator(
-                                line_list, cells_to_replace, all_emission_lines_tmp_third,
-                                O_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                C_over_H_log[nan_mask][nan_mask_second][nan_mask_third], C_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                N_over_H_log[nan_mask][nan_mask_second][nan_mask_third], N_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                Ne_over_H_log[nan_mask][nan_mask_second][nan_mask_third], Ne_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                S_over_H_log[nan_mask][nan_mask_second][nan_mask_third], S_depletion[nan_mask][nan_mask_second][nan_mask_third],
-                                star_metal[nan_mask][nan_mask_second][nan_mask_third], star_ion_lums[nan_mask][nan_mask_second][nan_mask_third],
-                            )
-
-                            all_emission_lines_tmp[idx_nan_third] = all_emission_lines_tmp_third
-
-                            nan_mask_fourth = np.isnan(all_emission_lines_tmp).any(axis=1)
-                            if nan_mask_fourth.any():
-                                idx_nan_fourth = np.where(nan_mask_fourth)[0]
-
-                                # Final iteration, updating the subset which are still NaN with a lower Q (reset the age back to the original)
-                                tmp_star_age_fourth = star_age[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth]
-                                tmp_star_ion_lums_fourth = star_ion_lums[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth] / 10
-                                to_interp = format_cloudy_interpolator(
-                                    nH[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], C_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    tmp_star_age_fourth, star_metal[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], tmp_star_ion_lums_fourth,
-                                )
-                                all_emission_lines_tmp_fourth = 10.**mif_cloudy(to_interp)
-                                all_emission_lines_tmp_fourth = rescaling_interpolator(
-                                    line_list, cells_to_replace, all_emission_lines_tmp_fourth,
-                                    O_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    C_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], C_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    N_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], N_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    Ne_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], Ne_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    S_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], S_depletion[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
-                                    star_metal[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], tmp_star_ion_lums_fourth,
-                                )
-                                all_emission_lines_tmp[idx_nan_fourth] = all_emission_lines_tmp_fourth
-
-                    all_emission_lines[idx_nan] = all_emission_lines_tmp
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
@@ -661,49 +372,24 @@ def get_emission_lines(
             loc_lum = loc_rec_lum + loc_col_lum
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                nH = nH[cells_to_replace]
-                nO = nO[cells_to_replace]
-                nC = nC[cells_to_replace]
-                nN = nN[cells_to_replace]
-                nNe = nNe[cells_to_replace]
-                nS = nS[cells_to_replace]
+                O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)
+                C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)
+                N_over_H = np.log10(nN) - np.log10(nH) - np.log10(6.76E-05)
+                Ne_over_H = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)
+                S_over_H = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)
 
-                O_depletion = np.log10(O_depletion[cells_to_replace])
-                C_depletion = np.log10(C_depletion[cells_to_replace])
-                N_depletion = np.log10(N_depletion[cells_to_replace])
-                Ne_depletion = np.log10(Ne_depletion[cells_to_replace])
-                S_depletion = np.log10(S_depletion[cells_to_replace])
+                print(nH, C_over_H, O_over_H, O_depletion, star_age, star_metal, star_ion_lums)
 
-                star_age = star_age[cells_to_replace]
-                star_metal = star_metal[cells_to_replace]
-                star_ion_lums = star_ion_lums[cells_to_replace]
-
-                O_over_H_log = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)     # depletion
-                C_over_H_log = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)     # depletion
-                N_over_H_log = np.log10(nN) - np.log10(nH) - np.log10(6.76E-05)     # depletion
-                Ne_over_H_log = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)   # depletion
-                S_over_H_log = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)     # depletion
-
-                to_interp = format_cloudy_interpolator(
-                    nH, C_over_H_log, O_over_H_log, O_depletion,
+                all_emission_lines = apply_stromgren_correction(
+                    cells_to_replace,
+                    nH, nO, nC, nN, nNe, nS,
+                    O_over_H, C_over_H, N_over_H, Ne_over_H, S_over_H,
+                    O_depletion, C_depletion, N_depletion, Ne_depletion, S_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
 
-                # TODO: This line does the interpolation for all lines, but we redo it for every line.
-                # Can be sped up by only doing it once and storing the results.
-                all_emission_lines = 10.**mif_cloudy(to_interp)
-
-                all_emission_lines = rescaling_interpolator(
-                    line_list, cells_to_replace, all_emission_lines,
-                    O_over_H_log, O_depletion,
-                    C_over_H_log, C_depletion,
-                    N_over_H_log, N_depletion,
-                    Ne_over_H_log, Ne_depletion,
-                    S_over_H_log, S_depletion,
-                    star_metal, star_ion_lums,
-                )
+                print(all_emission_lines[:, 13])
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:

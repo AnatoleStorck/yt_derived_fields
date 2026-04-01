@@ -346,31 +346,22 @@ def format_cloudy_interpolator_p3(df):
 
 
 def format_cloudy_interpolator(
-        nH,
-        gas_C_over_H_log,
-        gas_O_over_H_log,
-        gas_O_depletion,
-        star_age,
-        star_metal,
-        star_ionLum,
+    df,
 ):
     """
     Format the data for cloudy tabular interpolation
     """
 
     # Initialize the interpolation array
-    to_interpolate = np.zeros((len(nH),6))
+    to_interpolate = np.zeros((len(df),6))
 
     # Stellar metallicity
-    to_interpolate[:,0] = np.array(np.log10(star_metal))
+    to_interpolate[:,0] = np.array(np.log10(df["metallicity"]))
     to_interpolate[:,0][to_interpolate[:,0] < -5.0] = -5.0
     to_interpolate[:,0][to_interpolate[:,0] > np.log10(0.030)] = np.log10(0.030)
 
-    # Gas metallicity -- with respect to the stellar metallicity
-    # (remember to account for depletion)
-    to_interpolate[:,1] = (gas_O_over_H_log +
-                           gas_O_depletion -
-                           np.log10(star_metal/0.014))
+    # Gas metallicity -- with respect to the stellar metallicity (remember to account for depletion)
+    to_interpolate[:,1] = np.array(df["[O/H]"] + df["O_dep"] - np.array(np.log10(df["metallicity"]/0.014)))
     to_interpolate[:,1][to_interpolate[:,1] < -3.0] = -3.0
     to_interpolate[:,1][to_interpolate[:,1] > 4.0] = 4.0
 
@@ -383,22 +374,22 @@ def format_cloudy_interpolator(
         to_interpolate[:,1][cloudy_crash_flag] -= to_subtract[cloudy_crash_flag] 
 
     # Gas density
-    to_interpolate[:,2] = np.log10(nH)
+    to_interpolate[:,2] = np.array(df["nH"])
     to_interpolate[:,2][to_interpolate[:,2] < 1.0] = 1.0
     to_interpolate[:,2][to_interpolate[:,2] > 6.0] = 6.0
 
     # Stellar age
-    to_interpolate[:,3] = np.log10(np.maximum(star_age*1e6,1.0)) # Max prevents negative ages
+    to_interpolate[:,3] = np.array(np.log10(np.maximum(df["age"]*1e6,1.0))) # Max prevents negative ages
     to_interpolate[:,3][to_interpolate[:,3] < 6.0] = 6.0
     to_interpolate[:,3][to_interpolate[:,3] > 7.3] = 7.3
 
     # Ionizing luminosity
-    to_interpolate[:,4] = np.log10(star_ionLum)
+    to_interpolate[:,4] = np.array(df["ionizing_luminosity"])
     to_interpolate[:,4][to_interpolate[:,4] < 46.5] = 46.5
     to_interpolate[:,4][to_interpolate[:,4] > 54.5] = 54.5
 
     # C/O --> this is ok because we account for depletion later
-    to_interpolate[:,5] = gas_C_over_H_log - gas_O_over_H_log
+    to_interpolate[:,5] = np.array(df["[C/H]"] - df["[O/H]"])
     to_interpolate[:,5][to_interpolate[:,5] < -3.0] = -3.0
     to_interpolate[:,5][to_interpolate[:,5] > 1.0] = 1.0
 
