@@ -164,7 +164,8 @@ def rescaling_interpolator(
     # Rescale in case we are above or below the gas metallicity bounds
     tmp = np.array(O_over_H_log + O_depletion_log - np.log10(star_metal / 0.014))
     idx_oxygen = [i for i,j in enumerate(line_list) if j[0]=="O"]
-    rescale = np.ones(int(cells_to_replace.sum()))
+    n_rows = all_emission_lines.shape[0]
+    rescale = np.ones(n_rows)
     rescale[tmp < -3.0] = (10.**tmp[tmp < -3.0]) / (10.**-3.0)
     rescale[tmp > 4.0] = (10.**tmp[tmp > 4.0]) / (10.**4.0)
     all_emission_lines[:,idx_oxygen] *= rescale[:, np.newaxis]
@@ -206,7 +207,7 @@ def rescaling_interpolator(
 
     # Rescale by Q if out of bounds
     # Note that this isn't exactly correct but I feel uncomfortable with too high Q
-    rescale = np.ones(int(cells_to_replace.sum()))
+    rescale = np.ones(n_rows)
     tmp = np.log10(star_ion_lums)
     rescale[tmp < 46.5] = 10.**(tmp[tmp < 46.5] - 46.5)
     rescale[tmp > 54.5] = 10.**(tmp[tmp > 54.5] - 54.5)
@@ -418,7 +419,7 @@ def get_emission_lines(
             loc_lum = ne * nel * xion
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros_like(int(cells_to_replace.sum()))
+                loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
                 nH = nH[cells_to_replace]
                 nO = nO[cells_to_replace]
@@ -464,6 +465,8 @@ def get_emission_lines(
 
                 nan_mask = np.isnan(all_emission_lines).any(axis=1)
                 if nan_mask.any():
+                    idx_nan = np.where(nan_mask)[0]
+
                     # First iteration
                     tmp_star_age = star_age[nan_mask] * 10 # Try updating the age
 
@@ -483,7 +486,9 @@ def get_emission_lines(
                     )
 
                     nan_mask_second = np.isnan(all_emission_lines_tmp).any(axis=1)
-                    if np.isnan(nan_mask_second).any():
+                    if nan_mask_second.any():
+                        idx_nan_second = np.where(nan_mask_second)[0]
+
                         # Second iteration, updating the subset which are still NaN with older age
                         tmp_star_age_second = tmp_star_age[nan_mask_second] * 10
                         to_interp = format_cloudy_interpolator(
@@ -504,7 +509,9 @@ def get_emission_lines(
                         all_emission_lines_tmp[nan_mask_second] = all_emission_lines_tmp_second
 
                         nan_mask_third = np.isnan(all_emission_lines_tmp).any(axis=1)
-                        if np.isnan(nan_mask_third).any():
+                        if nan_mask_third.any():
+                            idx_nan_third = np.where(nan_mask_third)[0]
+
                             # Third iteration, updating the subset which are still NaN with older age
                             tmp_star_age_third = tmp_star_age_second[nan_mask_third] * 10
                             to_interp = format_cloudy_interpolator(
@@ -522,10 +529,12 @@ def get_emission_lines(
                                 star_metal[nan_mask][nan_mask_second][nan_mask_third], star_ion_lums[nan_mask][nan_mask_second][nan_mask_third],
                             )
 
-                            all_emission_lines_tmp[nan_mask_second][nan_mask_third] = all_emission_lines_tmp_third
+                            all_emission_lines_tmp[idx_nan_third] = all_emission_lines_tmp_third
 
                             nan_mask_fourth = np.isnan(all_emission_lines_tmp).any(axis=1)
-                            if np.isnan(nan_mask_fourth).any():
+                            if nan_mask_fourth.any():
+                                idx_nan_fourth = np.where(nan_mask_fourth)[0]
+
                                 # Final iteration, updating the subset which are still NaN with a lower Q (reset the age back to the original)
                                 tmp_star_age_fourth = star_age[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth]
                                 tmp_star_ion_lums_fourth = star_ion_lums[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth] / 10
@@ -543,9 +552,9 @@ def get_emission_lines(
                                     S_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], S_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
                                     star_metal[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], tmp_star_ion_lums_fourth,
                                 )
-                                all_emission_lines_tmp[nan_mask_second][nan_mask_third][nan_mask_fourth] = all_emission_lines_tmp_fourth
+                                all_emission_lines_tmp[idx_nan_fourth] = all_emission_lines_tmp_fourth
 
-                all_emission_lines[nan_mask] = all_emission_lines_tmp
+                    all_emission_lines[idx_nan] = all_emission_lines_tmp
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
@@ -643,7 +652,7 @@ def get_emission_lines(
             loc_lum = loc_rec_lum + loc_col_lum
 
             if fix_unres_stromgren:
-                loc_lum_cloudy = np.zeros_like(int(cells_to_replace.sum()))
+                loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
                 nH = nH[cells_to_replace]
                 nO = nO[cells_to_replace]
