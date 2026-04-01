@@ -151,6 +151,69 @@ def get_all_dust_depletions(metal):
 
     return depletion_dict
 
+def rescaling_interpolator(
+        line_list, cells_to_replace, all_emission_lines,
+        O_over_H_log, O_depletion_log,
+        C_over_H_log, C_depletion_log,
+        N_over_H_log, N_depletion_log,
+        Ne_over_H_log, Ne_depletion_log,
+        S_over_H_log, S_depletion_log,
+        star_metal, star_ion_lums,
+):
+
+    # Rescale in case we are above or below the gas metallicity bounds
+    tmp = np.array(O_over_H_log + O_depletion_log - np.log10(star_metal / 0.014))
+    idx_oxygen = [i for i,j in enumerate(line_list) if j[0]=="O"]
+    rescale = np.ones(int(cells_to_replace.sum()))
+    rescale[tmp < -3.0] = (10.**tmp[tmp < -3.0]) / (10.**-3.0)
+    rescale[tmp > 4.0] = (10.**tmp[tmp > 4.0]) / (10.**4.0)
+    all_emission_lines[:,idx_oxygen] *= rescale[:, np.newaxis]
+
+    # Rescale the carbon lines in case of bounds errors
+    idx_carbon = [i for i,j in enumerate(line_list) if j[0]=="C"]
+    C_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Carbon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
+    tmp1 = np.array(C_over_H_log - O_over_H_log)
+    tmp1[tmp1 < -3.0] = -3.0
+    tmp1[tmp1 > 1.0] = 1.0
+    C_over_H_cloudy += np.log10(2.69E-04) + O_over_H_log + O_depletion_log + tmp1 
+    tmp = np.array(C_over_H_log + C_depletion_log + np.log10(2.69E-04))
+    rescale = np.array(tmp / C_over_H_cloudy)
+    all_emission_lines[:,idx_carbon] *= rescale[:, np.newaxis]
+
+    # Rescale nitrogen by deviation from solar
+    idx_nitrogen = [i for i,j in enumerate(line_list) if j[0]=="N"]
+    N_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Nitrogen"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
+    N_over_H_cloudy += np.log10(6.76E-05) + O_over_H_log + O_depletion_log
+    tmp = np.array(N_over_H_log + N_depletion_log + np.log10(6.76E-05))
+    rescale = np.array(10.**(tmp - N_over_H_cloudy))
+    all_emission_lines[:,idx_nitrogen] *= rescale[:, np.newaxis]
+
+    # Rescale neon by deviation from solar
+    idx_neon = [i for i,j in enumerate(line_list) if j[:2]=="Ne"]
+    Ne_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Neon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
+    Ne_over_H_cloudy += np.log10(8.51E-05) + O_over_H_log + O_depletion_log
+    tmp = np.array(Ne_over_H_log + Ne_depletion_log + np.log10(8.51E-05))
+    rescale = np.array(10.**(tmp - Ne_over_H_cloudy))
+    all_emission_lines[:,idx_neon] *= rescale[:, np.newaxis]
+
+    # Rescale sulfur by deviation from solar
+    idx_sulfur = [i for i,j in enumerate(line_list) if j[:2]=="S "]
+    S_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Sulphur"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
+    S_over_H_cloudy += np.log10(1.32E-05) + O_over_H_log + O_depletion_log
+    tmp = np.array(S_over_H_log + S_depletion_log + np.log10(1.32E-05))
+    rescale = np.array(10.**(tmp - S_over_H_cloudy))
+    all_emission_lines[:,idx_sulfur] *= rescale[:, np.newaxis]
+
+    # Rescale by Q if out of bounds
+    # Note that this isn't exactly correct but I feel uncomfortable with too high Q
+    rescale = np.ones(int(cells_to_replace.sum()))
+    tmp = np.log10(star_ion_lums)
+    rescale[tmp < 46.5] = 10.**(tmp[tmp < 46.5] - 46.5)
+    rescale[tmp > 54.5] = 10.**(tmp[tmp > 54.5] - 54.5)
+    all_emission_lines *= rescale[:, np.newaxis]
+
+    return all_emission_lines
+
 def get_emission_lines(
         ds,
         coll_lines=None,
@@ -389,58 +452,100 @@ def get_emission_lines(
                 # Can be sped up by only doing it once and storing the results.
                 all_emission_lines = 10.**mif_cloudy(to_interp)
 
+                all_emission_lines = rescaling_interpolator(
+                    line_list, cells_to_replace, all_emission_lines,
+                    O_over_H_log, O_depletion_log,
+                    C_over_H_log, C_depletion_log,
+                    N_over_H_log, N_depletion_log,
+                    Ne_over_H_log, Ne_depletion_log,
+                    S_over_H_log, S_depletion_log,
+                    star_metal, star_ion_lums,
+                )
 
-                # Rescale in case we are above or below the gas metallicity bounds
-                tmp = np.array(O_over_H_log + O_depletion_log - np.log10(star_metal / 0.014))
-                idx_oxygen = [i for i,j in enumerate(line_list) if j[0]=="O"]
-                rescale = np.ones(int(cells_to_replace.sum()))
-                rescale[tmp < -3.0] = (10.**tmp[tmp < -3.0]) / (10.**-3.0)
-                rescale[tmp > 4.0] = (10.**tmp[tmp > 4.0]) / (10.**4.0)
-                all_emission_lines[:,idx_oxygen] *= rescale[:, np.newaxis]
+                nan_mask = np.isnan(all_emission_lines).any(axis=1)
+                if nan_mask.any():
+                    # First iteration
+                    tmp_star_age = star_age[nan_mask] * 10 # Try updating the age
 
-                # Rescale the carbon lines in case of bounds errors
-                idx_carbon = [i for i,j in enumerate(line_list) if j[0]=="C"]
-                C_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Carbon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                tmp1 = np.array(C_over_H_log - O_over_H_log)
-                tmp1[tmp1 < -3.0] = -3.0
-                tmp1[tmp1 > 1.0] = 1.0
-                C_over_H_cloudy += np.log10(2.69E-04) + O_over_H_log + O_depletion_log + tmp1 
-                tmp = np.array(C_over_H_log + C_depletion_log + np.log10(2.69E-04))
-                rescale = np.array(tmp / C_over_H_cloudy)
-                all_emission_lines[:,idx_carbon] *= rescale[:, np.newaxis]
+                    to_interp = format_cloudy_interpolator(
+                        nH[nan_mask], C_over_H_log[nan_mask], O_over_H_log[nan_mask], O_depletion_log[nan_mask],
+                        tmp_star_age, star_metal[nan_mask], star_ion_lums[nan_mask],
+                    )
+                    all_emission_lines_tmp = 10.**mif_cloudy(to_interp)
+                    all_emission_lines_tmp = rescaling_interpolator(
+                        line_list, cells_to_replace, all_emission_lines_tmp,
+                        O_over_H_log[nan_mask], O_depletion_log[nan_mask],
+                        C_over_H_log[nan_mask], C_depletion_log[nan_mask],
+                        N_over_H_log[nan_mask], N_depletion_log[nan_mask],
+                        Ne_over_H_log[nan_mask], Ne_depletion_log[nan_mask],
+                        S_over_H_log[nan_mask], S_depletion_log[nan_mask],
+                        star_metal[nan_mask], star_ion_lums[nan_mask],
+                    )
 
-                # Rescale nitrogen by deviation from solar
-                idx_nitrogen = [i for i,j in enumerate(line_list) if j[0]=="N"]
-                N_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Nitrogen"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                N_over_H_cloudy += np.log10(6.76E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(N_over_H_log + N_depletion_log + np.log10(6.76E-05))
-                rescale = np.array(10.**(tmp - N_over_H_cloudy))
-                all_emission_lines[:,idx_nitrogen] *= rescale[:, np.newaxis]
+                    nan_mask_second = np.isnan(all_emission_lines_tmp).any(axis=1)
+                    if np.isnan(nan_mask_second).any():
+                        # Second iteration, updating the subset which are still NaN with older age
+                        tmp_star_age_second = tmp_star_age[nan_mask_second] * 10
+                        to_interp = format_cloudy_interpolator(
+                            nH[nan_mask][nan_mask_second], C_over_H_log[nan_mask][nan_mask_second], O_over_H_log[nan_mask][nan_mask_second], O_depletion_log[nan_mask][nan_mask_second],
+                            tmp_star_age_second, star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
+                        )
+                        all_emission_lines_tmp_second = 10.**mif_cloudy(to_interp)
+                        all_emission_lines_tmp_second = rescaling_interpolator(
+                            line_list, cells_to_replace, all_emission_lines_tmp_second,
+                            O_over_H_log[nan_mask][nan_mask_second], O_depletion_log[nan_mask][nan_mask_second],
+                            C_over_H_log[nan_mask][nan_mask_second], C_depletion_log[nan_mask][nan_mask_second],
+                            N_over_H_log[nan_mask][nan_mask_second], N_depletion_log[nan_mask][nan_mask_second],
+                            Ne_over_H_log[nan_mask][nan_mask_second], Ne_depletion_log[nan_mask][nan_mask_second],
+                            S_over_H_log[nan_mask][nan_mask_second], S_depletion_log[nan_mask][nan_mask_second],
+                            star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
+                        )
 
-                # Rescale neon by deviation from solar
-                idx_neon = [i for i,j in enumerate(line_list) if j[:2]=="Ne"]
-                Ne_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Neon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                Ne_over_H_cloudy += np.log10(8.51E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(Ne_over_H_log + Ne_depletion_log + np.log10(8.51E-05))
-                rescale = np.array(10.**(tmp - Ne_over_H_cloudy))
-                all_emission_lines[:,idx_neon] *= rescale[:, np.newaxis]
+                        all_emission_lines_tmp[nan_mask_second] = all_emission_lines_tmp_second
 
-                # Rescale sulfur by deviation from solar
-                idx_sulfur = [i for i,j in enumerate(line_list) if j[:2]=="S "]
-                S_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Sulphur"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                S_over_H_cloudy += np.log10(1.32E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(S_over_H_log + S_depletion_log + np.log10(1.32E-05))
-                rescale = np.array(10.**(tmp - S_over_H_cloudy))
-                all_emission_lines[:,idx_sulfur] *= rescale[:, np.newaxis]
+                        nan_mask_third = np.isnan(all_emission_lines_tmp).any(axis=1)
+                        if np.isnan(nan_mask_third).any():
+                            # Third iteration, updating the subset which are still NaN with older age
+                            tmp_star_age_third = tmp_star_age_second[nan_mask_third] * 10
+                            to_interp = format_cloudy_interpolator(
+                                nH[nan_mask][nan_mask_second][nan_mask_third], C_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                tmp_star_age_third, star_metal[nan_mask][nan_mask_second][nan_mask_third], star_ion_lums[nan_mask][nan_mask_second][nan_mask_third],
+                            )
+                            all_emission_lines_tmp_third = 10.**mif_cloudy(to_interp)
+                            all_emission_lines_tmp_third = rescaling_interpolator(
+                                line_list, cells_to_replace, all_emission_lines_tmp_third,
+                                O_over_H_log[nan_mask][nan_mask_second][nan_mask_third], O_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                C_over_H_log[nan_mask][nan_mask_second][nan_mask_third], C_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                N_over_H_log[nan_mask][nan_mask_second][nan_mask_third], N_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                Ne_over_H_log[nan_mask][nan_mask_second][nan_mask_third], Ne_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                S_over_H_log[nan_mask][nan_mask_second][nan_mask_third], S_depletion_log[nan_mask][nan_mask_second][nan_mask_third],
+                                star_metal[nan_mask][nan_mask_second][nan_mask_third], star_ion_lums[nan_mask][nan_mask_second][nan_mask_third],
+                            )
 
-                # Rescale by Q if out of bounds
-                # Note that this isn't exactly correct but I feel uncomfortable with too high Q
-                rescale = np.ones(int(cells_to_replace.sum()))
-                tmp = np.log10(star_ion_lums)
-                rescale[tmp < 46.5] = 10.**(tmp[tmp < 46.5] - 46.5)
-                rescale[tmp > 54.5] = 10.**(tmp[tmp > 54.5] - 54.5)
-                all_emission_lines *= rescale[:, np.newaxis]
+                            all_emission_lines_tmp[nan_mask_second][nan_mask_third] = all_emission_lines_tmp_third
 
+                            nan_mask_fourth = np.isnan(all_emission_lines_tmp).any(axis=1)
+                            if np.isnan(nan_mask_fourth).any():
+                                # Final iteration, updating the subset which are still NaN with a lower Q (reset the age back to the original)
+                                tmp_star_age_fourth = star_age[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth]
+                                tmp_star_ion_lums_fourth = star_ion_lums[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth] / 10
+                                to_interp = format_cloudy_interpolator(
+                                    nH[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], C_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    tmp_star_age_fourth, star_metal[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], tmp_star_ion_lums_fourth,
+                                )
+                                all_emission_lines_tmp_fourth = 10.**mif_cloudy(to_interp)
+                                all_emission_lines_tmp_fourth = rescaling_interpolator(
+                                    line_list, cells_to_replace, all_emission_lines_tmp_fourth,
+                                    O_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], O_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    C_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], C_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    N_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], N_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    Ne_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], Ne_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    S_over_H_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], S_depletion_log[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth],
+                                    star_metal[nan_mask][nan_mask_second][nan_mask_third][nan_mask_fourth], tmp_star_ion_lums_fourth,
+                                )
+                                all_emission_lines_tmp[nan_mask_second][nan_mask_third][nan_mask_fourth] = all_emission_lines_tmp_fourth
+
+                all_emission_lines[nan_mask] = all_emission_lines_tmp
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
@@ -572,58 +677,15 @@ def get_emission_lines(
                 # Can be sped up by only doing it once and storing the results.
                 all_emission_lines = 10.**mif_cloudy(to_interp)
 
-
-                # Rescale in case we are above or below the gas metallicity bounds
-                tmp = np.array(O_over_H_log + O_depletion_log - np.log10(star_metal / 0.014))
-                idx_oxygen = [i for i,j in enumerate(line_list) if j[0]=="O"]
-                rescale = np.ones(int(cells_to_replace.sum()))
-                rescale[tmp < -3.0] = (10.**tmp[tmp < -3.0]) / (10.**-3.0)
-                rescale[tmp > 4.0] = (10.**tmp[tmp > 4.0]) / (10.**4.0)
-                all_emission_lines[:,idx_oxygen] *= rescale[:, np.newaxis]
-
-                # Rescale the carbon lines in case of bounds errors
-                idx_carbon = [i for i,j in enumerate(line_list) if j[0]=="C"]
-                C_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Carbon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                tmp1 = np.array(C_over_H_log - O_over_H_log)
-                tmp1[tmp1 < -3.0] = -3.0
-                tmp1[tmp1 > 1.0] = 1.0
-                C_over_H_cloudy += np.log10(2.69E-04) + O_over_H_log + O_depletion_log + tmp1 
-                tmp = np.array(C_over_H_log + C_depletion_log + np.log10(2.69E-04))
-                rescale = np.array(tmp / C_over_H_cloudy)
-                all_emission_lines[:,idx_carbon] *= rescale[:, np.newaxis]
-
-                # Rescale nitrogen by deviation from solar
-                idx_nitrogen = [i for i,j in enumerate(line_list) if j[0]=="N"]
-                N_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Nitrogen"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                N_over_H_cloudy += np.log10(6.76E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(N_over_H_log + N_depletion_log + np.log10(6.76E-05))
-                rescale = np.array(10.**(tmp - N_over_H_cloudy))
-                all_emission_lines[:,idx_nitrogen] *= rescale[:, np.newaxis]
-
-                # Rescale neon by deviation from solar
-                idx_neon = [i for i,j in enumerate(line_list) if j[:2]=="Ne"]
-                Ne_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Neon"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                Ne_over_H_cloudy += np.log10(8.51E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(Ne_over_H_log + Ne_depletion_log + np.log10(8.51E-05))
-                rescale = np.array(10.**(tmp - Ne_over_H_cloudy))
-                all_emission_lines[:,idx_neon] *= rescale[:, np.newaxis]
-
-                # Rescale sulfur by deviation from solar
-                idx_sulfur = [i for i,j in enumerate(line_list) if j[:2]=="S "]
-                S_over_H_cloudy = np.log10(np.array([get_all_dust_depletions(kk)["Sulphur"] for kk in O_over_H_log+O_depletion_log])) # Dust depletion (Carbon)
-                S_over_H_cloudy += np.log10(1.32E-05) + O_over_H_log + O_depletion_log
-                tmp = np.array(S_over_H_log + S_depletion_log + np.log10(1.32E-05))
-                rescale = np.array(10.**(tmp - S_over_H_cloudy))
-                all_emission_lines[:,idx_sulfur] *= rescale[:, np.newaxis]
-
-                # Rescale by Q if out of bounds
-                # Note that this isn't exactly correct but I feel uncomfortable with too high Q
-                rescale = np.ones(int(cells_to_replace.sum()))
-                tmp = np.log10(star_ion_lums)
-                rescale[tmp < 46.5] = 10.**(tmp[tmp < 46.5] - 46.5)
-                rescale[tmp > 54.5] = 10.**(tmp[tmp > 54.5] - 54.5)
-                all_emission_lines *= rescale[:, np.newaxis]
-
+                all_emission_lines = rescaling_interpolator(
+                    line_list, cells_to_replace, all_emission_lines,
+                    O_over_H_log, O_depletion_log,
+                    C_over_H_log, C_depletion_log,
+                    N_over_H_log, N_depletion_log,
+                    Ne_over_H_log, Ne_depletion_log,
+                    S_over_H_log, S_depletion_log,
+                    star_metal, star_ion_lums,
+                )
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
