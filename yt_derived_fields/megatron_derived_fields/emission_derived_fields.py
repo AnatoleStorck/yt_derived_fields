@@ -26,7 +26,6 @@ from yt_derived_fields.megatron_derived_fields import (
     chemistry_data as chem_data,
 )
 from yt_derived_fields.spectral_utils.setup_stromgren_correction_interpolators import (
-    format_cloudy_interpolator,
     get_cloudy_el_interpolator,
 )
 
@@ -163,6 +162,7 @@ def get_emission_lines(
     if rec_lines is not None or all_lines:
         rec_line_dict = get_rec_line_dict()
     if fix_unres_stromgren:
+        mylog.info("Setting up interpolation for unresolved Stromgren sphere corrections.")
         # Get the interpolation matrix
         # (metal, O/H, nH, ages, ionLum, C/O) --> list of line luminosities (erg/s)
         mif_cloudy, line_list = get_cloudy_el_interpolator()
@@ -286,6 +286,8 @@ def get_emission_lines(
                     loc_lum_cloudy = get_cloudy_line_luminosity(
                         all_emission_lines, line_idx, int(cells_to_replace.sum())
                     )
+                else:
+                    loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
 
@@ -398,6 +400,8 @@ def get_emission_lines(
                     loc_lum_cloudy = get_cloudy_line_luminosity(
                         all_emission_lines, line_idx, int(cells_to_replace.sum())
                     )
+                else:
+                    loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
                 loc_lum[cells_to_replace] = loc_lum_cloudy
 
