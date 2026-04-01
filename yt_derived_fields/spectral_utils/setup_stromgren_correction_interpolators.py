@@ -146,7 +146,7 @@ def get_cloudy_el_interpolator():
     # Now handle the broken models
     # Load in the dictionary of broken models
     with open(
-        f"{path_cloudy_update}/BPASS/broken_models_2.json",
+        f"{path_cloudy_update}/BPASS/broken_models.json",
         "r",
     ) as bmj:
         broken_models = json.load(bmj)
