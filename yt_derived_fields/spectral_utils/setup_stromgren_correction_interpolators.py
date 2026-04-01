@@ -80,10 +80,36 @@ def get_cloudy_el_interpolator():
     """
     import json
 
-    top_dirs = ["zem5", "zem4", "z001", "z002", "z003", "z004",
-                "z006", "z008", "z010", "z014", "z020", "z030"]
-    metals = np.array([1e-5, 1e-4, 0.001, 0.002, 0.003, 0.004,
-                       0.006, 0.008, 0.010, 0.014, 0.020, 0.030])
+    top_dirs = [
+        "zem5",
+        "zem4",
+        "z001",
+        "z002",
+        "z003",
+        "z004",
+        "z006",
+        "z008",
+        "z010",
+        "z014",
+        "z020",
+        "z030",
+    ]
+    metals = np.array(
+        [
+            1e-5,
+            1e-4,
+            0.001,
+            0.002,
+            0.003,
+            0.004,
+            0.006,
+            0.008,
+            0.010,
+            0.014,
+            0.020,
+            0.030,
+        ]
+    )
 
     # List of all gas phase metallicities (w/ respect to the stellar metallicity)
     O_grid = np.arange(-3, 4.1, 1.0)
@@ -98,64 +124,160 @@ def get_cloudy_el_interpolator():
     C_grid = np.arange(-3.0, 1.1, 1.0)
 
     # List of all ages
-    A_grid = np.array([6.0, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6,
-                       6.7, 6.8, 6.9, 7.0, 7.176, 7.3])
+    A_grid = np.array(
+        [6.0, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.176, 7.3]
+    )
 
-    # Load in the list of lines
-    with open(f"{path_cloudy_interp_pop2}/line_list.dat") as f:
-        lines = f.readlines()
-    all_lines = [l.strip() for l in lines  if (len(l.strip()) > 0)]
-    header = ["iteration"] + all_lines
-    col_rename = {i: header[i] for i in range(len(header))}
+    # Create the header
+    el_header = [
+        "O1_63",
+        "O1_145",
+        "C1_609",
+        "C1_370",
+        "C2_158",
+        "N2_205",
+        "N2_122",
+        "Si2_35",
+        "Ne2_13",
+        "S3_18",
+        "S3_33",
+        "S4_10",
+        "N3_57",
+        "O3_88",
+        "O3_52",
+        "Ne3_36",
+        "Ne3_15",
+        "O4_26",
+        "Ne5_14",
+        "Ne5_24",
+        "H1_12",
+    ]
+    # Sometimes line names differ slightly from the header
+    line_file_names = [
+        "O1_63",
+        "O1_145",
+        "C1_609",
+        "C1_370",
+        "C2_158",
+        "N2_205",
+        "N2_122",
+        "Si2_34",
+        "Ne2_12",
+        "S3_18",
+        "S3_33",
+        "S4_10",
+        "N3_57",
+        "O3_88",
+        "O3_52",
+        "Ne3_36",
+        "Ne3_15",
+        "O4_26",
+        "Ne5_14",
+        "Ne5_24",
+        "H1_12",
+    ]
 
-    cloudy_grid = -50.0 + np.zeros((len(top_dirs),len(O_grid),len(D_grid),len(A_grid),len(Q_grid),len(C_grid),len(header)-1))
-
-    for j,td in enumerate(top_dirs):
-        for i in range(len(O_grid)):
-            try:
-                df = pd.read_csv(f"{path_cloudy_interp_pop2}/{td}/lines_list_{str(i).zfill(5)}.list",header=None,delimiter="\t",comment="#")
-            except (NameError,pd.errors.EmptyDataError,FileNotFoundError):
-                continue
-            df = df.rename(columns=col_rename)
-            tmp = np.log10(np.array(df[header[1:]]).reshape(len(D_grid),len(A_grid),len(Q_grid),len(C_grid),len(header)-1)+1e-50)
-
-            # Now the array should have columns of
-            # Density, Age, Q, C/O, Emission line luminosities
-            cloudy_grid[j,i,:,:,:,:,:] = tmp
+    cloudy_grid = -50.0 + np.zeros(
+        (
+            len(top_dirs),
+            len(O_grid),
+            len(D_grid),
+            len(A_grid),
+            len(Q_grid),
+            len(C_grid),
+            len(el_header),
+        )
+    )
 
     # Now handle the broken models
     # Load in the dictionary of broken models
-    with open(f"{path_cloudy_interp_pop2}/broken_models.json","r") as bmj:
+    with open(
+        "/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/broken_models_2.json",
+        "r",
+    ) as bmj:
         broken_models = json.load(bmj)
 
-    for j,td in enumerate(top_dirs):
-        for i in range(len(O_grid)):
+    # Loop over stellar metallicities
+    for j, td in enumerate(top_dirs):
+        # Loop over gas metallicities
+        for i in tqdm(range(len(O_grid))):
             bm_list = broken_models[f"metal_{td}"][str(i)]
-            broken_counter = 0
-            for kk in range(len(D_grid)):
-                for ll in range(len(A_grid)):
-                    for mm in range(len(Q_grid)):
-                        for nn in range(len(C_grid)):
-                            # NAN out the broken models
-                            if broken_counter in bm_list:
-                                cloudy_grid[j,i,kk,ll,mm,nn,:] = np.nan
-                            # Increment the index
-                            broken_counter += 1
+
+            # Load in the unit file
+            lfname = f"/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/{td}/extra_lines/unit_{str(i).zfill(5)}.dat"
+            with open(lfname, "r") as l_file:
+                unit_f = l_file.readlines()
+
+            # Line number for units
+            unit_line_numbers = np.array(
+                [[int(line.split(":")[0]), 0, 0] for line in unit_f]
+            )
+
+            # Loop over lines
+            for l_idx, my_line in enumerate(line_file_names):
+                broken_counter = 0
+                sim_counter = 0
+
+                # Load in the lines file
+                lfname = f"/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/{td}/extra_lines/{my_line}_{str(i).zfill(5)}.dat"
+                try:
+                    with open(lfname, "r") as l_file:
+                        all_lines = l_file.readlines()
+                except:
+                    continue
+
+                # Line number for lines
+                line_line_numbers = np.array(
+                    [
+                        [int(line.split(":")[0]), 1, float(line.split("\t")[2])]
+                        for line in all_lines
+                    ]
+                )
+
+                # Stack the arrays
+                tmp = np.concatenate((unit_line_numbers, line_line_numbers))
+                sorted_tmp = sorted_arr = tmp[tmp[:, 0].argsort()]
+
+                # Now create the luminosity array
+                l_list = []
+                for xxx in range(len(sorted_tmp) - 1):
+                    if (sorted_tmp[xxx, 1] == 0.0) & (sorted_tmp[xxx + 1, 1] == 1.0):
+                        l_list.append(sorted_tmp[xxx + 1, 2])
+                    elif (sorted_tmp[xxx, 1] == 0.0) & (sorted_tmp[xxx + 1, 1] == 0.0):
+                        l_list.append(np.nan)
+                l_list = np.array(l_list)
+
+                # Loop over density
+                for kk in range(len(D_grid)):
+                    # Loop over age
+                    for ll in range(len(A_grid)):
+                        # Loop over ionization parameter
+                        for mm in range(len(Q_grid)):
+                            # Loop over carbon abundance
+                            for nn in range(len(C_grid)):
+                                # NAN out the broken models
+                                if broken_counter in bm_list:
+                                    cloudy_grid[j, i, kk, ll, mm, nn, l_idx] = np.nan
+                                else:
+                                    cloudy_grid[j, i, kk, ll, mm, nn, l_idx] = l_list[
+                                        sim_counter
+                                    ]
+                                    sim_counter += 1
+
+                                # Increment the index
+                                broken_counter += 1
 
     # Fixes for single point failures
     cloudy_grid[cloudy_grid < -49.0] = np.nan
 
     mif = RegularGridInterpolator(
-        (
-            np.log10(metals),
-            O_grid, D_grid,
-            A_grid, Q_grid,
-            C_grid,
-        ),
-        cloudy_grid, bounds_error=False, fill_value=np.nan
+        (np.log10(metals), O_grid, D_grid, A_grid, Q_grid, C_grid),
+        cloudy_grid,
+        bounds_error=False,
+        fill_value=np.nan,
     )
 
-    return mif, header[1:]
+    return mif, el_header
 
 
 def get_cloudy_el_p3_interpolator():
