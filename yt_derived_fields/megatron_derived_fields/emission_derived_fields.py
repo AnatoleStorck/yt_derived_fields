@@ -444,6 +444,8 @@ def get_emission_lines(
                 Ne_over_H_log = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)   # depletion
                 S_over_H_log = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)     # depletion
 
+                print(nH, C_over_H_log, O_over_H_log, O_depletion_log, star_age, star_metal, star_ion_lums)
+
                 to_interp = format_cloudy_interpolator(
                     nH, C_over_H_log, O_over_H_log, O_depletion_log,
                     star_age, star_metal, star_ion_lums,
