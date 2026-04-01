@@ -269,6 +269,7 @@ def rescale_emission(df, all_emission_lines, line_list):
     return np.log10(all_emission_lines)
 
 def apply_stromgren_correction(
+        mif_cloudy, line_list,
         cells_to_replace,
         nH, nO, nC, nN, nNe, nS,
         O_over_H, C_over_H, N_over_H, Ne_over_H, S_over_H,
@@ -280,10 +281,6 @@ def apply_stromgren_correction(
     This will rescale the emission lines based on the deviation of the gas properties
     from the properties of the cloudy models.
     """
-
-    # Get the interpolation matrix
-    # (metal, O/H, nH, ages, ionLum, C/O) --> list of line luminosities (erg/s)
-    mif_cloudy, line_list = get_cloudy_el_interpolator()
 
     # Format the input for harley's cloudy correction
     header = [
@@ -353,11 +350,11 @@ def apply_stromgren_correction(
         replace_emission_lines[np.isnan(replace_emission_lines)[:,0]] = tmp
 
 
-    # Check for nans again
-    # Note that there can occasionally be a nan for some high ionization lines
-    # so first check for those
-    replace_emission_lines[:,53][np.isnan(replace_emission_lines[:,53])] = -50.0
-    replace_emission_lines[:,54][np.isnan(replace_emission_lines[:,54])] = -50.0
+    # # Check for nans again
+    # # Note that there can occasionally be a nan for some high ionization lines
+    # # so first check for those
+    # replace_emission_lines[:,53][np.isnan(replace_emission_lines[:,53])] = -50.0
+    # replace_emission_lines[:,54][np.isnan(replace_emission_lines[:,54])] = -50.0
     if (np.isnan(replace_emission_lines).sum() > 0):
         print("!!!!!! OMG !!!!!! --> you broke cloudy")
 

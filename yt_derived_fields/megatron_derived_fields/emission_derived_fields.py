@@ -273,14 +273,13 @@ def get_emission_lines(
                 S_over_H = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)
 
                 all_emission_lines = apply_stromgren_correction(
+                    mif_cloudy, line_list,
                     cells_to_replace,
                     nH, nO, nC, nN, nNe, nS,
                     O_over_H, C_over_H, N_over_H, Ne_over_H, S_over_H,
                     O_depletion, C_depletion, N_depletion, Ne_depletion, S_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
-
-                print(all_emission_lines[:, 13])
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
@@ -385,17 +384,14 @@ def get_emission_lines(
                 Ne_over_H = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)
                 S_over_H = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)
 
-                print(nH, C_over_H, O_over_H, O_depletion, star_age, star_metal, star_ion_lums)
-
                 all_emission_lines = apply_stromgren_correction(
+                    mif_cloudy, line_list,
                     cells_to_replace,
                     nH, nO, nC, nN, nNe, nS,
                     O_over_H, C_over_H, N_over_H, Ne_over_H, S_over_H,
                     O_depletion, C_depletion, N_depletion, Ne_depletion, S_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
-
-                print(all_emission_lines[:, 13])
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
