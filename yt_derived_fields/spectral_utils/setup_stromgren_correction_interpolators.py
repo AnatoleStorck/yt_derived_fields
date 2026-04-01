@@ -1,6 +1,4 @@
 
-
-import tqdm
 import numpy as np
 import pandas as pd
 from scipy.interpolate import RegularGridInterpolator
@@ -200,7 +198,7 @@ def get_cloudy_el_interpolator():
     # Loop over stellar metallicities
     for j, td in enumerate(top_dirs):
         # Loop over gas metallicities
-        for i in tqdm(range(len(O_grid))):
+        for i in range(len(O_grid)):
             bm_list = broken_models[f"metal_{td}"][str(i)]
 
             # Load in the unit file
@@ -386,7 +384,7 @@ def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
 
     # Load in the cloudy models
     print("Initializing cloudy nebular continuum grid")
-    for j,td in tqdm(enumerate(top_dirs)):
+    for j,td in enumerate(top_dirs):
         for i in range(len(O_grid)):
             try:
                 df = np.load(f"{path_cloudy_update}/BPASS/{td}/reduced_neb_continuum_{str(i).zfill(5)}.npy")
@@ -429,7 +427,7 @@ def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
         # Initialize the cloudy grid
         cloudy_grid_ds = np.zeros((len(top_dirs),len(O_grid),len(D_grid),len(A_grid),len(Q_grid),len(C_grid),len(wvls_ds)))
 
-        for ii in tqdm(range(len(top_dirs))):
+        for ii in range(len(top_dirs)):
             for jj in range(len(O_grid)):
                 for kk in range(len(D_grid)):
                     for ll in range(len(A_grid)):
