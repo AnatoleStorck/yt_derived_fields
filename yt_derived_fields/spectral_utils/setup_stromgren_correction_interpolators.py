@@ -192,7 +192,7 @@ def get_cloudy_el_interpolator():
     # Now handle the broken models
     # Load in the dictionary of broken models
     with open(
-        "/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/broken_models_2.json",
+        f"{path_cloudy_update}/BPASS/broken_models_2.json",
         "r",
     ) as bmj:
         broken_models = json.load(bmj)
@@ -204,7 +204,7 @@ def get_cloudy_el_interpolator():
             bm_list = broken_models[f"metal_{td}"][str(i)]
 
             # Load in the unit file
-            lfname = f"/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/{td}/extra_lines/unit_{str(i).zfill(5)}.dat"
+            lfname = f"{path_cloudy_update}/BPASS/{td}/extra_lines/unit_{str(i).zfill(5)}.dat"
             with open(lfname, "r") as l_file:
                 unit_f = l_file.readlines()
 
@@ -219,7 +219,7 @@ def get_cloudy_el_interpolator():
                 sim_counter = 0
 
                 # Load in the lines file
-                lfname = f"/data100/cadiou/Megatron/DATA/CLOUDY_UPDATE_APR11/BPASS/{td}/extra_lines/{my_line}_{str(i).zfill(5)}.dat"
+                lfname = f"{path_cloudy_update}/BPASS/{td}/extra_lines/{my_line}_{str(i).zfill(5)}.dat"
                 try:
                     with open(lfname, "r") as l_file:
                         all_lines = l_file.readlines()
