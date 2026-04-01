@@ -286,29 +286,26 @@ def apply_stromgren_correction(
     mif_cloudy, line_list = get_cloudy_el_interpolator()
 
     # Format the input for harley's cloudy correction
-    df_strom = pd.DataFrame({
-        "nH": np.log10(nH[cells_to_replace]),
-        "nO": np.log10(nO[cells_to_replace]),
-        "nC": np.log10(nC[cells_to_replace]),
-        "nN": np.log10(nN[cells_to_replace]),
-        "nNe": np.log10(nNe[cells_to_replace]),
-        "nS": np.log10(nS[cells_to_replace]),
-        # THESE ARE DEFINED IN LOGARITHMIC UNITS ----
-        "[O/H]": O_over_H[cells_to_replace],
-        "[C/H]": C_over_H[cells_to_replace],
-        "[N/H]": N_over_H[cells_to_replace],
-        "[Ne/H]": Ne_over_H[cells_to_replace],
-        "[S/H]": S_over_H[cells_to_replace],
-        "O_dep": O_depletion[cells_to_replace],
-        "C_dep": C_depletion[cells_to_replace],
-        "N_dep": N_depletion[cells_to_replace],
-        "Ne_dep": Ne_depletion[cells_to_replace],
-        "S_dep": S_depletion[cells_to_replace],
-        # -------------------------------------------
-        "age": np.log10(star_age[cells_to_replace]),
-        "metallicity": star_metal[cells_to_replace],
-        "ionizing_luminosity": np.log10(star_ion_lums[cells_to_replace]),
-    })
+    header = [
+        "nH", "nO", "nC", "nN", "nNe", "nS",
+        "[O/H]", "[C/H]", "[N/H]", "[Ne/H]", "[S/H]",
+        "O_dep", "C_dep", "N_dep", "Ne_dep", "S_dep",
+        "age", "metallicity", "ionizing_luminosity"
+    ]
+    dat = np.array([
+        np.log10(nH[cells_to_replace]), np.log10(nO[cells_to_replace]),
+        np.log10(nC[cells_to_replace]), np.log10(nN[cells_to_replace]),
+        np.log10(nNe[cells_to_replace]), np.log10(nS[cells_to_replace]),
+        O_over_H[cells_to_replace], C_over_H[cells_to_replace],
+        N_over_H[cells_to_replace], Ne_over_H[cells_to_replace],
+        S_over_H[cells_to_replace],
+        O_depletion[cells_to_replace], C_depletion[cells_to_replace],
+        N_depletion[cells_to_replace], Ne_depletion[cells_to_replace],
+        S_depletion[cells_to_replace],
+        np.log10(star_age[cells_to_replace]), star_metal[cells_to_replace],
+        np.log10(star_ion_lums[cells_to_replace]),
+    ]).T
+    df_strom = pd.DataFrame(dat, columns=header)
 
     print ("Applying stromgren correction to", len(df_strom), "cells")
     print (df_strom)
