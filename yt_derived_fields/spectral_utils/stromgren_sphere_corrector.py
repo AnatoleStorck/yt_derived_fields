@@ -58,7 +58,7 @@ def stromgren_correction_pipeline(ds):
         
         ages = data["pop2", "age"].in_units("Myr")
 
-        return ages < 10.0 * u.Myr
+        return ages < 20.0 * u.Myr
     yt.add_particle_filter(
         "young_pop2",
         function=young_pop2_filter,
