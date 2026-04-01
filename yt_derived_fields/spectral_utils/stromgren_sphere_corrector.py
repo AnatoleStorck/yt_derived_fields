@@ -302,7 +302,7 @@ def apply_stromgren_correction(
         O_depletion[cells_to_replace], C_depletion[cells_to_replace],
         N_depletion[cells_to_replace], Ne_depletion[cells_to_replace],
         S_depletion[cells_to_replace],
-        np.log10(star_age[cells_to_replace]), star_metal[cells_to_replace],
+        star_age[cells_to_replace], star_metal[cells_to_replace],
         np.log10(star_ion_lums[cells_to_replace]),
     ]).T
     df_strom = pd.DataFrame(dat, columns=header)
