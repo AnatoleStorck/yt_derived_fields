@@ -8,6 +8,7 @@
 
 import yt
 import numpy as np
+import pandas as pd
 
 from yt import units as u
 from yt.fields.field_detector import FieldDetector
@@ -285,7 +286,7 @@ def apply_stromgren_correction(
     mif_cloudy, line_list = get_cloudy_el_interpolator()
 
     # Format the input for harley's cloudy correction
-    df_strom = {
+    df_strom = pd.DataFrame({
         "nH": np.log10(nH[cells_to_replace]),
         "nO": np.log10(nO[cells_to_replace]),
         "nC": np.log10(nC[cells_to_replace]),
@@ -307,7 +308,7 @@ def apply_stromgren_correction(
         "age": star_age[cells_to_replace],
         "metallicity": star_metal[cells_to_replace],
         "ionizing_luminosity": np.log10(star_ion_lums[cells_to_replace]),
-    }
+    })
 
     print ("Applying stromgren correction to", len(df_strom), "cells")
     print (df_strom)
