@@ -74,35 +74,13 @@ def get_cloudy_el_interpolator():
     import json
 
     top_dirs = [
-        "zem5",
-        "zem4",
-        "z001",
-        "z002",
-        "z003",
-        "z004",
-        "z006",
-        "z008",
-        "z010",
-        "z014",
-        "z020",
-        "z030",
+        "zem5", "zem4", "z001", "z002", "z003", "z004",
+        "z006", "z008", "z010", "z014", "z020", "z030",
     ]
-    metals = np.array(
-        [
-            1e-5,
-            1e-4,
-            0.001,
-            0.002,
-            0.003,
-            0.004,
-            0.006,
-            0.008,
-            0.010,
-            0.014,
-            0.020,
-            0.030,
-        ]
-    )
+    metals = np.array([
+            1e-5, 1e-4, 0.001, 0.002, 0.003, 0.004,
+            0.006, 0.008, 0.010, 0.014, 0.020, 0.030,
+    ])
 
     # List of all gas phase metallicities (w/ respect to the stellar metallicity)
     O_grid = np.arange(-3, 4.1, 1.0)
@@ -183,7 +161,8 @@ def get_cloudy_el_interpolator():
                         for nn in range(len(C_grid)):
                             # NAN out the broken models
                             if broken_counter in bm_list:
-                                cloudy_grid[j, i, kk, ll, mm, nn, :] = np.nan
+                                pass
+                                #cloudy_grid[j, i, kk, ll, mm, nn, :] = np.nan
                             # Increment the index
                             broken_counter += 1
 
@@ -210,35 +189,13 @@ def get_cloudy_el_interpolator_IR():
     import json
 
     top_dirs = [
-        "zem5",
-        "zem4",
-        "z001",
-        "z002",
-        "z003",
-        "z004",
-        "z006",
-        "z008",
-        "z010",
-        "z014",
-        "z020",
-        "z030",
+        "zem5", "zem4", "z001", "z002", "z003", "z004",
+        "z006", "z008", "z010", "z014", "z020", "z030",
     ]
-    metals = np.array(
-        [
-            1e-5,
-            1e-4,
-            0.001,
-            0.002,
-            0.003,
-            0.004,
-            0.006,
-            0.008,
-            0.010,
-            0.014,
-            0.020,
-            0.030,
-        ]
-    )
+    metals = np.array([
+            1e-5, 1e-4, 0.001, 0.002, 0.003, 0.004,
+            0.006, 0.008, 0.010, 0.014, 0.020, 0.030,
+    ])
 
     # List of all gas phase metallicities (w/ respect to the stellar metallicity)
     O_grid = np.arange(-3, 4.1, 1.0)
@@ -259,51 +216,17 @@ def get_cloudy_el_interpolator_IR():
 
     # Create the header
     el_header = [
-        "O1_63",
-        "O1_145",
-        "C1_609",
-        "C1_370",
-        "C2_158",
-        "N2_205",
-        "N2_122",
-        "Si2_35",
-        "Ne2_13",
-        "S3_18",
-        "S3_33",
-        "S4_10",
-        "N3_57",
-        "O3_88",
-        "O3_52",
-        "Ne3_36",
-        "Ne3_15",
-        "O4_26",
-        "Ne5_14",
-        "Ne5_24",
-        "H1_12",
+        "O1_63", "O1_145", "C1_609", "C1_370", "C2_158",
+        "N2_205", "N2_122", "Si2_35", "Ne2_13", "S3_18",
+        "S3_33", "S4_10", "N3_57", "O3_88", "O3_52",
+        "Ne3_36", "Ne3_15", "O4_26", "Ne5_14", "Ne5_24", "H1_12",
     ]
     # Sometimes line names differ slightly from the header
     line_file_names = [
-        "O1_63",
-        "O1_145",
-        "C1_609",
-        "C1_370",
-        "C2_158",
-        "N2_205",
-        "N2_122",
-        "Si2_34",
-        "Ne2_12",
-        "S3_18",
-        "S3_33",
-        "S4_10",
-        "N3_57",
-        "O3_88",
-        "O3_52",
-        "Ne3_36",
-        "Ne3_15",
-        "O4_26",
-        "Ne5_14",
-        "Ne5_24",
-        "H1_12",
+        "O1_63", "O1_145", "C1_609", "C1_370", "C2_158",
+        "N2_205", "N2_122", "Si2_34", "Ne2_12", "S3_18",
+        "S3_33", "S4_10", "N3_57", "O3_88", "O3_52", 
+        "Ne3_36", "Ne3_15", "O4_26", "Ne5_14", "Ne5_24", "H1_12",
     ]
 
     cloudy_grid = -50.0 + np.zeros(
@@ -408,78 +331,6 @@ def get_cloudy_el_interpolator_IR():
 
     return mif, el_header
 
-
-def get_cloudy_el_p3_interpolator():
-    """
-    Returns a regular grid interpolator for unresolved stromgren spheres
-    for the Pop III calculation
-    """
-    # Get the densities
-    dens = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-
-    # Get the corresponding masses for the models
-    mod_params  = np.loadtxt(f"{path_cloudy_interp_pop3}/model_params.dat",delimiter=",",skiprows=1)
-    masses = mod_params[:,0]
-
-    # Load in the emission line table
-    lines = np.load(f"{path_cloudy_interp_pop3}/popIII_emission_lines.npy")
-
-    mif = RegularGridInterpolator((dens,masses), lines, bounds_error=False, fill_value=0.0)
-
-    return mif
-
-
-
-
-
-
-
-
-
-
-
-
-
-def initialize_cloudy_nebc_unresolved_p3(downsample=False,ds_nwv=5):
-    """
-    Returns a regular grid interpolator for unresolved stromgren spheres
-    for the Pop III calculation
-    """
-
-    # Set up the wavelength grid
-    lmin = 1150
-    lmax = 10000
-    wvls = np.arange(lmin,lmax+0.1)
-
-    # Get the densities
-    dens = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-
-    # Get the corresponding masses for the models
-    mod_params  = np.loadtxt(f"{path_cloudy_update}/MEGATRON_cloudy_models_popIII_nip/model_params.dat",delimiter=",",skiprows=1)
-    masses = mod_params[:,0]
-
-    # Load in the nebular continuum
-    cloudy_grid = np.load(f"{path_cloudy_update}/MEGATRON_cloudy_models_popIII_nip/reduced_neb_continuum.npy")
-
-    # If we need to downsample
-    if downsample:
-        wvls_ds = pd.Series(wvls).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
-
-        # Initialize the cloudy grid
-        cloudy_grid_ds = np.zeros((len(dens),len(masses),len(wvls_ds)))
-
-        for ii in range(len(dens)):
-            for jj in range(len(masses)):
-                cloudy_grid_ds[ii,jj] = pd.Series(cloudy_grid[ii,jj]).rolling(window=ds_nwv, min_periods=1, center=True).mean()[::ds_nwv]
-
-        mif_ds = RegularGridInterpolator((dens,masses), cloudy_grid_ds, bounds_error=False, fill_value=0.0)
-
-        return mif_ds
-
-    mif = RegularGridInterpolator((dens,masses), cloudy_grid, bounds_error=False, fill_value=0.0)
-
-    return mif
-
 def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
     """
     Create the interpolating function for the nebular continuum for unresolved stromgren spheres
@@ -571,30 +422,6 @@ def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
         return mif_ds
 
     return mif
-
-
-
-def format_cloudy_interpolator_p3(df):
-    """
-    Format the data for cloudy tabular interpolation
-    --> this is specifically for pop III stars
-    """
-
-    # Initialize the interpolation array
-    to_interpolate = np.zeros((len(df),2))
-
-    # Gas density
-    to_interpolate[:,0] = np.array(df["nH"])
-    to_interpolate[:,0][to_interpolate[:,0] < 1.0] = 1.0
-    to_interpolate[:,0][to_interpolate[:,0] > 6.0] = 6.0
-
-    # Stellar mass
-    to_interpolate[:,1] = np.array(df["initial_mass"])
-    to_interpolate[:,1][to_interpolate[:,1] < 1.0] = 1.0
-    to_interpolate[:,1][to_interpolate[:,1] > 820.0] = 820.0
-
-    return to_interpolate
-
 
 def format_cloudy_interpolator(
     df,
