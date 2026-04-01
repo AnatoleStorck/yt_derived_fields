@@ -66,12 +66,143 @@ def load_SED_from_sim(top_dir, ngroups=8, SED_isEgy=True):
     return ages, metal_rebin, mif
 
 
-
-
-
-
-
 def get_cloudy_el_interpolator():
+    """
+    Returns a regular grid interpolator for unresolved stromgren spheres
+    this run includes induced processes
+    """
+    import json
+
+    top_dirs = [
+        "zem5",
+        "zem4",
+        "z001",
+        "z002",
+        "z003",
+        "z004",
+        "z006",
+        "z008",
+        "z010",
+        "z014",
+        "z020",
+        "z030",
+    ]
+    metals = np.array(
+        [
+            1e-5,
+            1e-4,
+            0.001,
+            0.002,
+            0.003,
+            0.004,
+            0.006,
+            0.008,
+            0.010,
+            0.014,
+            0.020,
+            0.030,
+        ]
+    )
+
+    # List of all gas phase metallicities (w/ respect to the stellar metallicity)
+    O_grid = np.arange(-3, 4.1, 1.0)
+
+    # List of all ionizing luminosities
+    Q_grid = np.arange(46.5, 54.6, 1.0)
+
+    # List of all gas densities
+    D_grid = np.arange(1.0, 6.1, 1.0)
+
+    # List of all carbon fractions (w/ respect to the O abundance)
+    C_grid = np.arange(-3.0, 1.1, 1.0)
+
+    # List of all ages
+    A_grid = np.array(
+        [6.0, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7.0, 7.176, 7.3]
+    )
+
+    # Load in the list of lines
+    with open(
+        f"{path_cloudy_update}/BPASS/line_list.dat"
+    ) as f:
+        lines = f.readlines()
+    all_lines = [l.strip() for l in lines if (len(l.strip()) > 0)]
+    header = ["iteration"] + all_lines
+    col_rename = {i: header[i] for i in range(len(header))}
+
+    cloudy_grid = -50.0 + np.zeros(
+        (
+            len(top_dirs),
+            len(O_grid),
+            len(D_grid),
+            len(A_grid),
+            len(Q_grid),
+            len(C_grid),
+            len(header) - 1,
+        )
+    )
+
+    for j, td in enumerate(top_dirs):
+        for i in range(len(O_grid)):
+            try:
+                df = pd.read_csv(
+                    f"{path_cloudy_update}/BPASS/{td}/lines_list_{str(i).zfill(5)}.list",
+                    header=None,
+                    delimiter="\t",
+                    comment="#",
+                )
+            except (NameError, pd.errors.EmptyDataError, FileNotFoundError):
+                continue
+            df = df.rename(columns=col_rename)
+            tmp = np.log10(
+                np.array(df[header[1:]]).reshape(
+                    len(D_grid), len(A_grid), len(Q_grid), len(C_grid), len(header) - 1
+                )
+                + 1e-50
+            )
+
+            # Now the array should have columns of
+            # Density, Age, Q, C/O, Emission line luminosities
+            cloudy_grid[j, i, :, :, :, :, :] = tmp
+
+    # Now handle the broken models
+    # Load in the dictionary of broken models
+    with open(
+        f"{path_cloudy_update}/BPASS/broken_models.json",
+        "r",
+    ) as bmj:
+        broken_models = json.load(bmj)
+
+    for j, td in enumerate(top_dirs):
+        for i in range(len(O_grid)):
+            bm_list = broken_models[f"metal_{td}"][str(i)]
+            broken_counter = 0
+            for kk in range(len(D_grid)):
+                for ll in range(len(A_grid)):
+                    for mm in range(len(Q_grid)):
+                        for nn in range(len(C_grid)):
+                            # NAN out the broken models
+                            if broken_counter in bm_list:
+                                cloudy_grid[j, i, kk, ll, mm, nn, :] = np.nan
+                            # Increment the index
+                            broken_counter += 1
+
+    # Fixes for single point failures
+    cloudy_grid[cloudy_grid < -49.0] = np.nan
+
+    mif = RegularGridInterpolator(
+        (np.log10(metals), O_grid, D_grid, A_grid, Q_grid, C_grid),
+        cloudy_grid,
+        bounds_error=False,
+        fill_value=np.nan,
+    )
+
+    return mif, header[1:]
+
+
+
+
+def get_cloudy_el_interpolator_IR():
     """
     Returns a regular grid interpolator for unresolved stromgren spheres
     this run includes induced processes
