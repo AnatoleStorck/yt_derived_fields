@@ -80,9 +80,9 @@ def generate_dust_depletion_field(ds):
                 return np.zeros(nH.shape)
 
             depletion_table = np.ones(len(nH))
-            filt = T < 6.0
+            filt = np.log10(T) < 6.0
 
-            x = 12.0 + (nO - nH)
+            x = 12.0 + np.log10(nO) - np.log10(nH)
 
             # Broken powerlaw model from RR14 (consistent with Taysun's Lya feedback)
             # See Table 1 of: https://www.aanda.org/articles/aa/pdf/2014/03/aa22803-13.pdf
