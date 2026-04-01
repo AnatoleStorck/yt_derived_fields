@@ -347,9 +347,9 @@ def format_cloudy_interpolator_p3(df):
 
 def format_cloudy_interpolator(
         nH,
-        gas_C_over_H,
-        gas_O_over_H,
-        gas_O_depletion,
+        gas_C_over_H_log,
+        gas_O_over_H_log,
+        gas_O_depletion_log,
         star_age,
         star_metal,
         star_ionLum,
@@ -368,8 +368,8 @@ def format_cloudy_interpolator(
 
     # Gas metallicity -- with respect to the stellar metallicity
     # (remember to account for depletion)
-    to_interpolate[:,1] = (np.log10(gas_O_over_H) +
-                           np.log10(gas_O_depletion) -
+    to_interpolate[:,1] = (gas_O_over_H_log +
+                           gas_O_depletion_log -
                            np.log10(star_metal/0.014))
     to_interpolate[:,1][to_interpolate[:,1] < -3.0] = -3.0
     to_interpolate[:,1][to_interpolate[:,1] > 4.0] = 4.0
@@ -398,7 +398,7 @@ def format_cloudy_interpolator(
     to_interpolate[:,4][to_interpolate[:,4] > 54.5] = 54.5
 
     # C/O --> this is ok because we account for depletion later
-    to_interpolate[:,5] = np.log10(gas_C_over_H) - np.log10(gas_O_over_H)
+    to_interpolate[:,5] = gas_C_over_H_log - gas_O_over_H_log
     to_interpolate[:,5][to_interpolate[:,5] < -3.0] = -3.0
     to_interpolate[:,5][to_interpolate[:,5] > 1.0] = 1.0
 
