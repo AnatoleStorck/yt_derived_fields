@@ -453,6 +453,8 @@ def get_emission_lines(
                 # Can be sped up by only doing it once and storing the results.
                 all_emission_lines = 10.**mif_cloudy(to_interp)
 
+                print(all_emission_lines[:, 13])
+
                 all_emission_lines = rescaling_interpolator(
                     line_list, cells_to_replace, all_emission_lines,
                     O_over_H_log, O_depletion_log,
@@ -462,6 +464,8 @@ def get_emission_lines(
                     S_over_H_log, S_depletion_log,
                     star_metal, star_ion_lums,
                 )
+
+                print(all_emission_lines[:, 13])
 
                 nan_mask = np.isnan(all_emission_lines).any(axis=1)
                 if nan_mask.any():
@@ -475,6 +479,7 @@ def get_emission_lines(
                         tmp_star_age, star_metal[nan_mask], star_ion_lums[nan_mask],
                     )
                     all_emission_lines_tmp = 10.**mif_cloudy(to_interp)
+                    print(all_emission_lines_tmp[:, 13])
                     all_emission_lines_tmp = rescaling_interpolator(
                         line_list, cells_to_replace, all_emission_lines_tmp,
                         O_over_H_log[nan_mask], O_depletion_log[nan_mask],
@@ -484,6 +489,7 @@ def get_emission_lines(
                         S_over_H_log[nan_mask], S_depletion_log[nan_mask],
                         star_metal[nan_mask], star_ion_lums[nan_mask],
                     )
+                    print(all_emission_lines_tmp[:, 13])
 
                     nan_mask_second = np.isnan(all_emission_lines_tmp).any(axis=1)
                     if nan_mask_second.any():
@@ -496,6 +502,7 @@ def get_emission_lines(
                             tmp_star_age_second, star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
                         )
                         all_emission_lines_tmp_second = 10.**mif_cloudy(to_interp)
+                        print(all_emission_lines_tmp_second[:, 13])
                         all_emission_lines_tmp_second = rescaling_interpolator(
                             line_list, cells_to_replace, all_emission_lines_tmp_second,
                             O_over_H_log[nan_mask][nan_mask_second], O_depletion_log[nan_mask][nan_mask_second],
@@ -505,7 +512,7 @@ def get_emission_lines(
                             S_over_H_log[nan_mask][nan_mask_second], S_depletion_log[nan_mask][nan_mask_second],
                             star_metal[nan_mask][nan_mask_second], star_ion_lums[nan_mask][nan_mask_second],
                         )
-
+                        print(all_emission_lines_tmp_second[:, 13])
                         all_emission_lines_tmp[nan_mask_second] = all_emission_lines_tmp_second
 
                         nan_mask_third = np.isnan(all_emission_lines_tmp).any(axis=1)
