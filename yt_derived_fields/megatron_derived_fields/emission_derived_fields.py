@@ -77,6 +77,14 @@ def generate_dust_depletion_field(ds):
     for el, dep in zip(elements, dep_solar):
         def _get_depletion(field, data):
 
+            #
+            # Calculates the expected dust depletion
+            #
+            # ! Get the depletion factors
+            # ! RR14 is based on the BARE-GR-S model of Zubko et al 2004
+            # ! See Table 5 which is where we generatred the fractional contributions 
+            # ! of each element
+
             nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
             nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
             T = data["gas", "temperature"].in_units("K").d
@@ -87,7 +95,7 @@ def generate_dust_depletion_field(ds):
             depletion_table = np.ones(len(nH))
             filt = np.log10(T) < 6.0
 
-            x = 12.0 + np.log10(nO) - np.log10(nH)
+            x = 12.0 + (np.log10(nO) - np.log10(nH))
 
             # Broken powerlaw model from RR14 (consistent with Taysun's Lya feedback)
             # See Table 1 of: https://www.aanda.org/articles/aa/pdf/2014/03/aa22803-13.pdf
