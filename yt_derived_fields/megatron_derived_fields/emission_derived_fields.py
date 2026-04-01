@@ -221,14 +221,14 @@ def get_emission_lines(
                 nNe = data["gas", "neon_number_density"].in_units("cm**-3").d
                 nS = data["gas", "sulfur_number_density"].in_units("cm**-3").d
 
-                O_depletion = data["gas", "O_dep"].value
-                C_depletion = data["gas", "C_dep"].value
-                N_depletion = data["gas", "N_dep"].value
-                Ne_depletion = data["gas", "Ne_dep"].value
-                S_depletion = data["gas", "S_dep"].value
+                O_depletion = np.array(data["gas", "O_dep"])
+                C_depletion = np.array(data["gas", "C_dep"])
+                N_depletion = np.array(data["gas", "N_dep"])
+                Ne_depletion = np.array(data["gas", "Ne_dep"])
+                S_depletion = np.array(data["gas", "S_dep"])
 
                 star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
-                star_metal = data["deposit", "young_pop2_avg_metallicity"].value
+                star_metal = np.array(data["deposit", "young_pop2_avg_metallicity"])
                 star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
 
                 cells_to_replace = data["gas", "unresolved_stromgren"]
