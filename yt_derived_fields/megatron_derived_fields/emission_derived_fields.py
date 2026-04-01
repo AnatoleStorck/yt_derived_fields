@@ -153,11 +153,11 @@ def get_all_dust_depletions(metal):
 
 def rescaling_interpolator(
         line_list, cells_to_replace, all_emission_lines,
-        O_over_H_log, O_depletion_log,
-        C_over_H_log, C_depletion_log,
-        N_over_H_log, N_depletion_log,
-        Ne_over_H_log, Ne_depletion_log,
-        S_over_H_log, S_depletion_log,
+        O_over_H_log, O_depletion,
+        C_over_H_log, C_depletion,
+        N_over_H_log, N_depletion,
+        Ne_over_H_log, Ne_depletion,
+        S_over_H_log, S_depletion,
         star_metal, star_ion_lums,
 ):
 
@@ -428,11 +428,11 @@ def get_emission_lines(
                 nNe = nNe[cells_to_replace]
                 nS = nS[cells_to_replace]
 
-                O_depletion_log = np.log10(O_depletion[cells_to_replace])
-                C_depletion_log = np.log10(C_depletion[cells_to_replace])
-                N_depletion_log = np.log10(N_depletion[cells_to_replace])
-                Ne_depletion_log = np.log10(Ne_depletion[cells_to_replace])
-                S_depletion_log = np.log10(S_depletion[cells_to_replace])
+                O_depletion = O_depletion[cells_to_replace]
+                C_depletion = C_depletion[cells_to_replace]
+                N_depletion = N_depletion[cells_to_replace]
+                Ne_depletion = Ne_depletion[cells_to_replace]
+                S_depletion = S_depletion[cells_to_replace]
 
                 star_age = star_age[cells_to_replace]
                 star_metal = star_metal[cells_to_replace]
@@ -444,10 +444,10 @@ def get_emission_lines(
                 Ne_over_H_log = np.log10(nNe) - np.log10(nH) - np.log10(8.51E-05)   # depletion
                 S_over_H_log = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)     # depletion
 
-                print(nH, C_over_H_log, O_over_H_log, O_depletion_log, star_age, star_metal, star_ion_lums)
+                print(nH, C_over_H_log, O_over_H_log, O_depletion, star_age, star_metal, star_ion_lums)
 
                 to_interp = format_cloudy_interpolator(
-                    nH, C_over_H_log, O_over_H_log, O_depletion_log,
+                    nH, C_over_H_log, O_over_H_log, O_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
 
@@ -459,11 +459,11 @@ def get_emission_lines(
 
                 all_emission_lines = rescaling_interpolator(
                     line_list, cells_to_replace, all_emission_lines,
-                    O_over_H_log, O_depletion_log,
-                    C_over_H_log, C_depletion_log,
-                    N_over_H_log, N_depletion_log,
-                    Ne_over_H_log, Ne_depletion_log,
-                    S_over_H_log, S_depletion_log,
+                    O_over_H_log, O_depletion,
+                    C_over_H_log, C_depletion,
+                    N_over_H_log, N_depletion,
+                    Ne_over_H_log, Ne_depletion,
+                    S_over_H_log, S_depletion,
                     star_metal, star_ion_lums,
                 )
 
@@ -687,7 +687,7 @@ def get_emission_lines(
                 S_over_H_log = np.log10(nS) - np.log10(nH) - np.log10(1.32E-05)     # depletion
 
                 to_interp = format_cloudy_interpolator(
-                    nH, C_over_H_log, O_over_H_log, O_depletion_log,
+                    nH, C_over_H_log, O_over_H_log, O_depletion,
                     star_age, star_metal, star_ion_lums,
                 )
 
@@ -697,11 +697,11 @@ def get_emission_lines(
 
                 all_emission_lines = rescaling_interpolator(
                     line_list, cells_to_replace, all_emission_lines,
-                    O_over_H_log, O_depletion_log,
-                    C_over_H_log, C_depletion_log,
-                    N_over_H_log, N_depletion_log,
-                    Ne_over_H_log, Ne_depletion_log,
-                    S_over_H_log, S_depletion_log,
+                    O_over_H_log, O_depletion,
+                    C_over_H_log, C_depletion,
+                    N_over_H_log, N_depletion,
+                    Ne_over_H_log, Ne_depletion,
+                    S_over_H_log, S_depletion,
                     star_metal, star_ion_lums,
                 )
 
