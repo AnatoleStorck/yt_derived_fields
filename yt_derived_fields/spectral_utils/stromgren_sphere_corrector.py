@@ -305,7 +305,7 @@ def apply_stromgren_correction(
         "Ne_dep": Ne_depletion[cells_to_replace],
         "S_dep": S_depletion[cells_to_replace],
         # -------------------------------------------
-        "age": star_age[cells_to_replace],
+        "age": np.log10(star_age[cells_to_replace]),
         "metallicity": star_metal[cells_to_replace],
         "ionizing_luminosity": np.log10(star_ion_lums[cells_to_replace]),
     })
