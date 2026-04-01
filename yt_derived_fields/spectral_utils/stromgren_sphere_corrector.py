@@ -299,9 +299,9 @@ def apply_stromgren_correction(
         O_over_H[cells_to_replace], C_over_H[cells_to_replace],
         N_over_H[cells_to_replace], Ne_over_H[cells_to_replace],
         S_over_H[cells_to_replace],
-        O_depletion[cells_to_replace], C_depletion[cells_to_replace],
-        N_depletion[cells_to_replace], Ne_depletion[cells_to_replace],
-        S_depletion[cells_to_replace],
+        np.log10(O_depletion[cells_to_replace]), np.log10(C_depletion[cells_to_replace]),
+        np.log10(N_depletion[cells_to_replace]), np.log10(Ne_depletion[cells_to_replace]),
+        np.log10(S_depletion[cells_to_replace]),
         star_age[cells_to_replace], star_metal[cells_to_replace],
         np.log10(star_ion_lums[cells_to_replace]),
     ]).T
