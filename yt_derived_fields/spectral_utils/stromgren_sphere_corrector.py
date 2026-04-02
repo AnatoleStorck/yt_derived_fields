@@ -63,7 +63,7 @@ def stromgren_correction_pipeline(ds):
         "young_pop2",
         function=young_pop2_filter,
         requires=["age"],
-        filtered_type="pop_2",
+        filtered_type="pop2",
     )
     if "young_pop2" not in ds.filtered_particle_types:
         ds.add_particle_filter("young_pop2")
