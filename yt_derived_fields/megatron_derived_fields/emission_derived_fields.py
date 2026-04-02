@@ -6,7 +6,8 @@
 
 # Everything normally needs to be in cgs units
 
-# TODO: 
+# TODO: Have a smarter way to generate stromgren sphere corrections that
+# only does some steps once instead of for every line.
 
 # Author: Anatole Storck
 
@@ -222,26 +223,28 @@ def get_emission_lines(
             # Find the fields for stromgren sphere corrections if needed
             if fix_unres_stromgren:
 
-                volume = data["gas", "cell_volume"].to("cm**3").value
-
-                nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
-                nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
-                nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
-                nN = data["gas", "nitrogen_number_density"].in_units("cm**-3").d
-                nNe = data["gas", "neon_number_density"].in_units("cm**-3").d
-                nS = data["gas", "sulfur_number_density"].in_units("cm**-3").d
-
-                O_depletion = np.array(data["gas", "O_dep"])
-                C_depletion = np.array(data["gas", "C_dep"])
-                N_depletion = np.array(data["gas", "N_dep"])
-                Ne_depletion = np.array(data["gas", "Ne_dep"])
-                S_depletion = np.array(data["gas", "S_dep"])
-
-                star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
-                star_metal = np.array(data["deposit", "young_pop2_avg_metallicity"])
-                star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
-
                 cells_to_replace = data["gas", "unresolved_stromgren"]
+
+                if cells_to_replace.sum() > 0 and not isinstance(data, FieldDetector):
+
+                    volume = data["gas", "cell_volume"].to("cm**3").value
+
+                    nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+                    nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
+                    nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
+                    nN = data["gas", "nitrogen_number_density"].in_units("cm**-3").d
+                    nNe = data["gas", "neon_number_density"].in_units("cm**-3").d
+                    nS = data["gas", "sulfur_number_density"].in_units("cm**-3").d
+
+                    O_depletion = np.array(data["gas", "O_dep"])
+                    C_depletion = np.array(data["gas", "C_dep"])
+                    N_depletion = np.array(data["gas", "N_dep"])
+                    Ne_depletion = np.array(data["gas", "Ne_dep"])
+                    S_depletion = np.array(data["gas", "S_dep"])
+
+                    star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
+                    star_metal = np.array(data["deposit", "young_pop2_avg_metallicity"])
+                    star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
 
             # ----------------------------------------------------------
 
@@ -327,26 +330,28 @@ def get_emission_lines(
             # Find the fields for stromgren sphere corrections if needed
             if fix_unres_stromgren:
 
-                volume = data["gas", "cell_volume"].to("cm**3").value
-
-                nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
-                nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
-                nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
-                nN = data["gas", "nitrogen_number_density"].in_units("cm**-3").d
-                nNe = data["gas", "neon_number_density"].in_units("cm**-3").d
-                nS = data["gas", "sulfur_number_density"].in_units("cm**-3").d
-
-                O_depletion = data["gas", "O_dep"]
-                C_depletion = data["gas", "C_dep"]
-                N_depletion = data["gas", "N_dep"]
-                Ne_depletion = data["gas", "Ne_dep"]
-                S_depletion = data["gas", "S_dep"]
-
-                star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
-                star_metal = data["deposit", "young_pop2_avg_metallicity"]
-                star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
-
                 cells_to_replace = data["gas", "unresolved_stromgren"]
+
+                if cells_to_replace.sum() > 0 and not isinstance(data, FieldDetector):
+
+                    volume = data["gas", "cell_volume"].to("cm**3").value
+
+                    nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
+                    nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
+                    nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
+                    nN = data["gas", "nitrogen_number_density"].in_units("cm**-3").d
+                    nNe = data["gas", "neon_number_density"].in_units("cm**-3").d
+                    nS = data["gas", "sulfur_number_density"].in_units("cm**-3").d
+
+                    O_depletion = np.array(data["gas", "O_dep"])
+                    C_depletion = np.array(data["gas", "C_dep"])
+                    N_depletion = np.array(data["gas", "N_dep"])
+                    Ne_depletion = np.array(data["gas", "Ne_dep"])
+                    S_depletion = np.array(data["gas", "S_dep"])
+
+                    star_age = data["deposit", "young_pop2_avg_age"].in_units("Myr").d
+                    star_metal = np.array(data["deposit", "young_pop2_avg_metallicity"])
+                    star_ion_lums = data["deposit", "young_pop2_sum_ionizing_luminosity"].d
 
             # ----------------------------------------------------------
 
