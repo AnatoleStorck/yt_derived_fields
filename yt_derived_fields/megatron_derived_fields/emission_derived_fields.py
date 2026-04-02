@@ -214,11 +214,11 @@ def get_emission_lines(
         def _get_coll_line_emissivity(field, data):
 
             if not isinstance(data, FieldDetector):
-                data.get_data(
+                data.get_data([
                     ("gas", "density"),
                     ("gas", "temperature"),
                     ("gas", "electron_number_density"),
-                )
+                ])
 
             rho = data["gas", "density"].to("g/cm**3").value
             Tgas = data["gas", "temperature"].to("K").value
@@ -230,7 +230,7 @@ def get_emission_lines(
             if fix_unres_stromgren:
 
                 if not isinstance(data, FieldDetector):
-                    data.get_data(
+                    data.get_data([
                         ("gas", "cell_volume"),
                         ("gas", "hydrogen_number_density"),
                         ("gas", "oxygen_number_density"),
@@ -244,12 +244,12 @@ def get_emission_lines(
                         ("gas", "Ne_dep"),
                         ("gas", "S_dep"),
                         ("gas", "unresolved_stromgren"),
-                    )
-                    data.get_data(
+                    ])
+                    data.get_data([
                         ("deposit", "young_pop2_avg_age"),
                         ("deposit", "young_pop2_avg_metallicity"),
                         ("deposit", "young_pop2_sum_ionizing_luminosity"),
-                )
+                    ])
 
                 volume = data["gas", "cell_volume"].to("cm**3").value
 
