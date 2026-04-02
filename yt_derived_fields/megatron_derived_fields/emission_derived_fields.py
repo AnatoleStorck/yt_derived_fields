@@ -6,7 +6,7 @@
 
 # Everything normally needs to be in cgs units
 
-# TODO: Add corections for unresolved stromgren spheres
+# TODO: 
 
 # Author: Anatole Storck
 
@@ -213,13 +213,6 @@ def get_emission_lines(
     def coll_line(ds, line):
         def _get_coll_line_emissivity(field, data):
 
-            if not isinstance(data, FieldDetector):
-                data.get_data([
-                    ("gas", "density"),
-                    ("gas", "temperature"),
-                    ("gas", "electron_number_density"),
-                ])
-
             rho = data["gas", "density"].to("g/cm**3").value
             Tgas = data["gas", "temperature"].to("K").value
             ne = data["gas", "electron_number_density"].to("cm**-3").value
@@ -228,28 +221,6 @@ def get_emission_lines(
 
             # Find the fields for stromgren sphere corrections if needed
             if fix_unres_stromgren:
-
-                if not isinstance(data, FieldDetector):
-                    data.get_data([
-                        ("gas", "cell_volume"),
-                        ("gas", "hydrogen_number_density"),
-                        ("gas", "oxygen_number_density"),
-                        ("gas", "carbon_number_density"),
-                        ("gas", "nitrogen_number_density"),
-                        ("gas", "neon_number_density"),
-                        ("gas", "sulfur_number_density"),
-                        ("gas", "O_dep"),
-                        ("gas", "C_dep"),
-                        ("gas", "N_dep"),
-                        ("gas", "Ne_dep"),
-                        ("gas", "S_dep"),
-                        ("gas", "unresolved_stromgren"),
-                    ])
-                    data.get_data([
-                        ("deposit", "young_pop2_avg_age"),
-                        ("deposit", "young_pop2_avg_metallicity"),
-                        ("deposit", "young_pop2_sum_ionizing_luminosity"),
-                    ])
 
                 volume = data["gas", "cell_volume"].to("cm**3").value
 
