@@ -69,7 +69,8 @@ def load_SED_from_sim(top_dir, ngroups=8, SED_isEgy=True):
 def get_cloudy_el_interpolator():
     """
     Returns a regular grid interpolator for unresolved stromgren spheres
-    this run includes induced processes
+    which includes induced processes. This is for the optical lines, and should
+    only be used for the runs with the constant IMF BPASS models.
     """
     import json
 
@@ -184,7 +185,8 @@ def get_cloudy_el_interpolator():
 def get_cloudy_el_interpolator_IR():
     """
     Returns a regular grid interpolator for unresolved stromgren spheres
-    this run includes induced processes
+    which includes induced processes. This is for the infrared lines, and should
+    only be used for the runs with the constant IMF BPASS models.
     """
     import json
 
@@ -333,8 +335,7 @@ def get_cloudy_el_interpolator_IR():
 
 def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
     """
-    Create the interpolating function for the nebular continuum for unresolved stromgren spheres
-    based on cloudy calculations
+    Create the interpolating function for the nebular continuum for unresolved stromgren spheres based on cloudy calculations.
     """
     import json
 
