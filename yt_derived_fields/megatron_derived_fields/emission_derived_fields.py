@@ -222,6 +222,8 @@ def get_emission_lines(
             # Find the fields for stromgren sphere corrections if needed
             if fix_unres_stromgren:
 
+                volume = data["gas", "cell_volume"].to("cm**3").value
+
                 nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
                 nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
                 nC = data["gas", "carbon_number_density"].in_units("cm**-3").d
@@ -262,7 +264,7 @@ def get_emission_lines(
 
             # Multiply by the electron density and ion density
             # n{el} = nO, ion = O_IV
-            loc_lum = ne * nel * xion
+            loc_emis *= ne * nel * xion
 
             if fix_unres_stromgren:
 
@@ -289,9 +291,10 @@ def get_emission_lines(
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                loc_lum[cells_to_replace] = loc_lum_cloudy
+                loc_emis_cloudy = loc_lum_cloudy / volume
+                loc_emis[cells_to_replace] = loc_emis_cloudy
 
-            return loc_lum * u.erg / u.s / u.cm**3
+            return loc_emis * u.erg / u.s / u.cm**3
 
         def _get_coll_line_lum(field, data):
             return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
@@ -323,6 +326,8 @@ def get_emission_lines(
 
             # Find the fields for stromgren sphere corrections if needed
             if fix_unres_stromgren:
+
+                volume = data["gas", "cell_volume"].to("cm**3").value
 
                 nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
                 nO = data["gas", "oxygen_number_density"].in_units("cm**-3").d
@@ -368,15 +373,12 @@ def get_emission_lines(
             to_interp_ch[to_interp_ch > 1e9] = 1e9
 
             loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
-            loc_rec_emis *= ne * nel * xion  # NOTE * df_gas[f"{el}_dep"]
+            loc_rec_emis *= ne * nel * xion  # NOTE * df_gas[f"{el}_dep"] # erg/s/cm^3
 
             loc_col_emis = rec_line_dict[line]["emis_grid_col"](to_interp_ch)
-            loc_col_emis *= ne * nel * xion_col  # NOTE * df_gas[f"{el}_dep"]
+            loc_col_emis *= ne * nel * xion_col  # NOTE * df_gas[f"{el}_dep"] # erg/s/cm^3
 
-            loc_rec_lum = loc_rec_emis  # erg/s/cm^3
-            loc_col_lum = loc_col_emis  # erg/s/cm^3
-
-            loc_lum = loc_rec_lum + loc_col_lum
+            loc_emis = loc_rec_emis + loc_col_emis
 
             if fix_unres_stromgren:
 
@@ -403,9 +405,10 @@ def get_emission_lines(
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                loc_lum[cells_to_replace] = loc_lum_cloudy
+                loc_emis_cloudy = loc_lum_cloudy / volume
+                loc_emis[cells_to_replace] = loc_emis_cloudy
 
-            return loc_lum * u.erg / u.s / u.cm**3
+            return loc_emis * u.erg / u.s / u.cm**3
 
         def _get_rec_line_lum(field, data):
             return data["gas", "cell_volume"] * data["gas", f"{line}_emissivity"]
