@@ -266,7 +266,7 @@ def get_emission_lines(
             # n{el} = nO, ion = O_IV
             loc_emis *= ne * nel * xion
 
-            if fix_unres_stromgren:
+            if fix_unres_stromgren and cells_to_replace.sum() > 0:
 
                 O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)
                 C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)
@@ -380,7 +380,7 @@ def get_emission_lines(
 
             loc_emis = loc_rec_emis + loc_col_emis
 
-            if fix_unres_stromgren:
+            if fix_unres_stromgren and cells_to_replace.sum() > 0:
 
                 O_over_H = np.log10(nO) - np.log10(nH) - np.log10(4.90E-04)
                 C_over_H = np.log10(nC) - np.log10(nH) - np.log10(2.69E-04)
