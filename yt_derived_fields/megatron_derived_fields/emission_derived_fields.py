@@ -406,6 +406,8 @@ def get_emission_lines(
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
                 loc_emis_cloudy = loc_lum_cloudy / volume[cells_to_replace]
+
+                print(f"Replacing {line} emissitivity from \n{loc_emis[cells_to_replace]} to \n{loc_emis_cloudy}")
                 loc_emis[cells_to_replace] = loc_emis_cloudy
 
             return loc_emis * u.erg / u.s / u.cm**3
