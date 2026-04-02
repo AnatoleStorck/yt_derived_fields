@@ -304,9 +304,6 @@ def apply_stromgren_correction(
     ]).T
     df_strom = pd.DataFrame(dat, columns=header)
 
-    print ("Applying stromgren correction to", len(df_strom), "cells")
-    print (df_strom)
-
     to_interpolate = format_cloudy_interpolator(df_strom)
     replace_emission_lines = 10.**mif_cloudy(to_interpolate)
     replace_emission_lines = rescale_emission(df_strom, replace_emission_lines, line_list)
