@@ -291,7 +291,7 @@ def get_emission_lines(
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                loc_emis_cloudy = loc_lum_cloudy / volume
+                loc_emis_cloudy = loc_lum_cloudy / volume[cells_to_replace]
                 loc_emis[cells_to_replace] = loc_emis_cloudy
 
             return loc_emis * u.erg / u.s / u.cm**3
@@ -405,7 +405,7 @@ def get_emission_lines(
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
-                loc_emis_cloudy = loc_lum_cloudy / volume
+                loc_emis_cloudy = loc_lum_cloudy / volume[cells_to_replace]
                 loc_emis[cells_to_replace] = loc_emis_cloudy
 
             return loc_emis * u.erg / u.s / u.cm**3
