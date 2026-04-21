@@ -58,8 +58,6 @@ def load_star_cutout(fname: str | Path, boxsize, h0, aexp, data_source=None):
     if isinstance(fname, str):
         fname = Path(fname)
 
-    registry = data_source.ds.unit_registry if data_source is not None else unyt.UnitRegistry()
-
     with FortranFile(fname, "r") as ff:
         ff.seek(0, 2)
         endpos = ff.tell()
@@ -312,7 +310,6 @@ headers: dict[int, list[tuple[str, Scale, str, str]]] = {
 @dataclass
 class IOHandler:
     filename: str | Path
-    unyt_registry: unyt.UnitRegistry
     metadata: dict[str, tuple[int, str, Scale, str, str]] = field(default_factory=dict)
     fp: FortranFile = field(init=False, repr=False)
 
@@ -398,10 +395,8 @@ def load_cutout(
         header = version
 
     # Create unyt registry
-    registry = unyt.UnitRegistry()
     io_handler = IOHandler(
         filename=path,
-        unyt_registry=registry,
     )
 
     data = {}
@@ -423,7 +418,6 @@ def load_cutout(
 
                 data[name] = raw_data
             else:
-                print(name, scale, unit, dtype)
                 io_handler.metadata[name] = ff.tell(), name, scale, unit, dtype
                 ff.skip()
 
@@ -435,8 +429,6 @@ def load_cutout(
 
     # Create a unyt registry
     boxsize_physical = boxsize * unyt.Mpc * aexp / h0
-    registry = unyt.UnitRegistry()
-    registry.add("unitary", float(boxsize_physical.to("m")), length)
 
     # Get xc (no need for unit conversion thus)
     xc = np.stack([data.pop(_) for _ in "xyz"], axis=-1)
@@ -445,12 +437,6 @@ def load_cutout(
 
     # Special case for dx (needs precise conversion from pc)
     dx = data.pop("dx") / 3.08e18 * unyt.pc / boxsize_physical
-
-    # # Convert everything else
-    # for name, _, unit, dtype in header:
-    #     if name not in data:
-    #         continue
-    #     data[name] = unyt.unyt_array(data[name], unit, registry=registry)
 
     # Get level
     level = np.round(np.log2(1 / dx)).astype(int)
@@ -488,14 +474,6 @@ def load_cutout(
 
     data = io_handler.get_data_object("gas", leaf_order, nan_mask)
 
-    # def reorder(field):
-    #     dt = io_handler.read(field)
-    #     tmp = dt[leaf_order] * nan_mask
-    #     return tmp[:, None]
-
-    # yt.mylog.debug("Reordering data according to octree leaf order")
-    # data = {("gas", k): lambda: reorder(k) for k, v in data.items()}
-
     params = {
         "cosmological_simulation": True,
         "current_redshift": redshift,
@@ -513,7 +491,9 @@ def load_cutout(
         num_zones=1,
         dataset_name=original_path.name,
         parameters=params,
-        length_unit=boxsize_physical,
+        length_unit=(boxsize_physical.value, str(boxsize_physical.units)),
+        mass_unit=(1, "Msun"),
+        time_unit=(1, "Gyr"),
     )
 
     ds.domain_center = ds.arr(center, "code_length")
