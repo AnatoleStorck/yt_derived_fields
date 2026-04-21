@@ -4,17 +4,87 @@ from pathlib import Path
 import numpy as np
 import pooch
 import unyt
+from unyt.dimensions import length
+
 import yt
-from scipy.io import FortranFile
+from cython_fortran_file import FortranFile
 from tqdm import tqdm
 from yt_experiments.octree.converter import OctTree
+from unyt import unyt_array
 
 from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import metal_data
+
+try:
+    import numexpr as ne
+    USE_NUMEXPR = True
+except ImportError:
+    USE_NUMEXPR = False
+
 
 
 class Scale(Enum):
     LINEAR = 0
     LOG = 1
+
+
+
+
+star_headers: dict[int, list[tuple[str, Scale, str, str]]] = {
+    1: [],
+    2: [
+        ("particle_position_x", Scale.LINEAR, "unitary", "d"),
+        ("particle_position_y", Scale.LINEAR, "unitary", "d"),
+        ("particle_position_z", Scale.LINEAR, "unitary", "d"),
+        ("particle_velocity_x", Scale.LINEAR, "cm/s", "f"),
+        ("particle_velocity_y", Scale.LINEAR, "cm/s", "f"),
+        ("particle_velocity_z", Scale.LINEAR, "cm/s", "f"),
+        ("age", Scale.LOG, "Myr", "f"),
+        ("iron_mass_fraction", Scale.LOG, "1", "f"),
+        ("oxygen_mass_fraction", Scale.LOG, "1", "f"),
+        ("nitrogen_mass_fraction", Scale.LOG, "1", "f"),
+        ("magnesium_mass_fraction", Scale.LOG, "1", "f"),
+        ("neon_mass_fraction", Scale.LOG, "1", "f"),
+        ("silicon_mass_fraction", Scale.LOG, "1", "f"),
+        ("calcium_mass_fraction", Scale.LOG, "1", "f"),
+        ("carbon_mass_fraction", Scale.LOG, "1", "f"),
+        ("sulfur_mass_fraction", Scale.LOG, "1", "f"),
+        ("initial_mass", Scale.LOG, "Msun", "f"),
+        ("mass", Scale.LOG, "Msun", "f"),
+    ]
+}
+
+def load_star_cutout(fname: str | Path, boxsize, h0, aexp, data_source = None):
+    if isinstance(fname, str):
+        fname = Path(fname)
+
+    registry = data_source.ds.unit_registry if data_source is not None else unyt.UnitRegistry()
+
+    with FortranFile(fname, "r") as ff:
+        ff.seek(0, 2)
+        endpos = ff.tell()
+        ff.seek(0)
+
+        header = star_headers[2]
+
+        nstars = ff.read_int()
+
+        data = {}
+
+        for name, scale, unit, dtype in tqdm(header, desc="Loading star cutout"):
+            raw_data = ff.read_vector(dtype).astype("d")
+            if scale == Scale.LOG:
+                if USE_NUMEXPR:
+                    ne.evaluate("10 ** raw_data", out=raw_data)
+                else:
+                    raw_data = 10**raw_data
+
+            assert len(raw_data) == nstars, f"Expected {nstars} stars but got {len(raw_data)} for field {name}"
+
+            data[name] = (raw_data, unit)
+
+        assert ff.tell() == endpos, "Did not read entire file"
+
+    return yt.load_particles(data, data_source=data_source)
 
 
 headers: dict[int, list[tuple[str, Scale, str, str]]] = {
@@ -128,14 +198,14 @@ headers: dict[int, list[tuple[str, Scale, str, str]]] = {
     2: [
         ("redshift", Scale.LINEAR, "1", "f"),
         ("dx", Scale.LOG, "cm", "f"),
-        ("x", Scale.LINEAR, "Mpccm/h", "d"),
-        ("y", Scale.LINEAR, "Mpccm/h", "d"),
-        ("z", Scale.LINEAR, "Mpccm/h", "d"),
+        ("x", Scale.LINEAR, "unitary", "d"),
+        ("y", Scale.LINEAR, "unitary", "d"),
+        ("z", Scale.LINEAR, "unitary", "d"),
         ("vx", Scale.LINEAR, "cm/s", "f"),
         ("vy", Scale.LINEAR, "cm/s", "f"),
         ("vz", Scale.LINEAR, "cm/s", "f"),
-        ("density", Scale.LOG, "mp/cm**3", "f"),
-        ("hydrogen_density", Scale.LOG, "1/cm**3", "f"),
+        ("density", Scale.LOG, "g/cm**3", "f"),
+        ("hydrogen_number_density", Scale.LOG, "1/cm**3", "f"),
         ("temperature", Scale.LOG, "K", "f"),
         ("pressure", Scale.LOG, "dyne/cm**2", "f"),
         ("iron_number_density", Scale.LOG, "1/cm**3", "f"),
@@ -240,10 +310,13 @@ headers: dict[int, list[tuple[str, Scale, str, str]]] = {
 
 def load_cutout(
     filename: str | Path,
-    boxsize: float = 50,
-    h0: float = 0.6727,
     verbose: bool = True,
     version: int | list[tuple[str, Scale, str, str]] = 1,
+    h0 = 0.672699966430664,
+    boxsize = 50.,
+    omega_m = 0.313899993896484,
+    omega_l = 0.686094999313354,
+    omega_b = 0.4916,
 ):
     """Load a Megatron cutout file as a yt dataset.
 
@@ -253,14 +326,20 @@ def load_cutout(
         Path to the cutout file. If a URL, it will be downloaded using pooch.
     boxsize : boxsize in Mpccm/h
         The boxsize of the original simulation in comoving Mpc/h. Default is 50.
-    h0 : float
-        The Hubble constant of the original simulation. Default is 0.6727.
     verbose : bool
         Whether to show a progress bar when loading the data. Default is True.
     version : int or list of (name, scale, unit) tuples
         The version of the cutout format to load. If an int, it must be a key
         in the `headers` dict. If a list, it should be a custom header
         specification. Default is 2.
+    h0 : float
+        The Hubble constant of the original simulation.
+    omega_m : float
+        The matter density parameter of the original simulation.
+    omega_l : float
+        The dark energy density parameter of the original simulation.
+    omega_b : float
+        The baryon density parameter of the original simulation.
 
     Returns
     -------
@@ -268,12 +347,6 @@ def load_cutout(
         The loaded yt dataset.
     """
     original_path = path = Path(filename)
-    try:
-        import numexpr as ne
-
-        use_numexpr = True
-    except ImportError:
-        use_numexpr = False
 
     if not path.exists():
         path = Path(pooch.retrieve(str(filename), known_hash=None))
@@ -285,40 +358,41 @@ def load_cutout(
 
     data = {}
     with FortranFile(path, "r") as ff:
+        # Seek to end to compute file size
+        ff.seek(0, 2)
+        endpos = ff.tell()
+        ff.seek(0)
+
         prog = tqdm if verbose and yt.is_root() else lambda x, *args, **kwargs: x
-        for name, scale, _unit, dtype in prog(header, desc="Loading cutout"):
-            # Read in the quantity
-            raw_data = ff.read_reals(dtype)
-            if scale == Scale.LOG:
-                if use_numexpr:
-                    ne.evaluate("10 ** raw_data", out=raw_data)
-                else:
-                    raw_data = 10**raw_data
+        for name, scale, _unit, dtype in prog(header, desc="Loading gas cutout"):
+            data[name] = ff.read_vector(dtype)
 
-            if name == "density":
-                if use_numexpr:
-                    ne.evaluate("raw_data / 0.76", out=raw_data)  # Convert from nH to rho
-                else:
-                    raw_data = raw_data / 0.76
-            data[name] = raw_data
+            if scale == Scale.LOG and USE_NUMEXPR:
+                ne.evaluate("10 ** data", out=data[name])
+            elif scale == Scale.LOG:
+                data[name] = 10**data[name]
 
-    redshift = data.pop("redshift")[0]
+        # Make sure we read the entire file
+        assert ff.tell() == endpos, "Did not read entire file"
+
+    redshift = data.pop("redshift")()[0][0]
     aexp = 1 / (1 + redshift)
 
     # Create a unyt registry
     boxsize_physical = boxsize * unyt.Mpc * aexp / h0
     registry = unyt.UnitRegistry()
+    registry.add("unitary", float(boxsize_physical.to("m")), length)
 
     # Get xc (no need for unit conversion thus)
-    xc = np.stack([data.pop(_) for _ in "xyz"], axis=-1)
+    xc = np.stack([data.pop(_)()[0] for _ in "xyz"], axis=-1)
 
     center = (xc.max(axis=0) + xc.min(axis=0)) / 2
 
     # Special case for dx (needs precise conversion from pc)
-    dx = data.pop("dx") / 3.08e18 * unyt.pc / boxsize_physical
+    dx = data.pop("dx")()[0] / 3.08e18 * unyt.pc / boxsize_physical
 
     # Convert everything else
-    for name, _, unit in header:
+    for name, _, unit, dtype in header:
         if name not in data:
             continue
         data[name] = unyt.unyt_array(data[name], unit, registry=registry)
@@ -368,6 +442,9 @@ def load_cutout(
         "cosmological_simulation": True,
         "current_redshift": redshift,
         "hubble_constant": h0,
+        "omega_matter": omega_m,
+        "omega_lambda": omega_l,
+        "omega_baryon": omega_b,
     }
 
     yt.mylog.debug("Loading octree dataset")
@@ -380,6 +457,7 @@ def load_cutout(
         parameters=params,
         length_unit=boxsize_physical,
     )
+
     ds.domain_center = ds.arr(center, "code_length")
 
     yt.mylog.debug("---------------------------------------------")
@@ -414,4 +492,8 @@ def load_cutout(
     for element in metal_data.keys():
         create_density(element)
 
-    return ds
+    # Now try creating star dataset if possible
+    star_fname = ds.filename.replace("gas", "stars")
+    star_ds = load_star_cutout(original_path.parent / star_fname, boxsize, h0, aexp, ds.all_data())
+
+    return ds, star_ds
