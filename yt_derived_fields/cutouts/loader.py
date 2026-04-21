@@ -2,10 +2,12 @@ from enum import Enum
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pooch
 import unyt
 from unyt.dimensions import length
-
+from dataclasses import dataclass, field
+from functools import partial
 import yt
 from cython_fortran_file import FortranFile
 from tqdm import tqdm
@@ -16,17 +18,15 @@ from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import m
 
 try:
     import numexpr as ne
+
     USE_NUMEXPR = True
 except ImportError:
     USE_NUMEXPR = False
 
 
-
 class Scale(Enum):
     LINEAR = 0
     LOG = 1
-
-
 
 
 star_headers: dict[int, list[tuple[str, Scale, str, str]]] = {
@@ -50,10 +50,11 @@ star_headers: dict[int, list[tuple[str, Scale, str, str]]] = {
         ("sulfur_mass_fraction", Scale.LOG, "1", "f"),
         ("initial_mass", Scale.LOG, "Msun", "f"),
         ("mass", Scale.LOG, "Msun", "f"),
-    ]
+    ],
 }
 
-def load_star_cutout(fname: str | Path, boxsize, h0, aexp, data_source = None):
+
+def load_star_cutout(fname: str | Path, boxsize, h0, aexp, data_source=None):
     if isinstance(fname, str):
         fname = Path(fname)
 
@@ -308,15 +309,55 @@ headers: dict[int, list[tuple[str, Scale, str, str]]] = {
 }
 
 
+@dataclass
+class IOHandler:
+    filename: str | Path
+    unyt_registry: unyt.UnitRegistry
+    metadata: dict[str, tuple[int, str, Scale, str, str]] = field(default_factory=dict)
+    fp: FortranFile = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self.fp = FortranFile(self.filename)
+
+    def __delete__(self, instance):
+        self.fp.close()
+
+    def read(self, name: str):
+        pos, name, scale, _unit, dtype = self.metadata[name]
+        self.fp.seek(pos)
+        raw_data = self.fp.read_vector(dtype)
+        if scale == Scale.LOG and USE_NUMEXPR:
+            ne.evaluate("10 ** raw_data", out=raw_data)
+        elif scale == Scale.LOG:
+            raw_data = 10**raw_data
+
+        return raw_data
+
+    def read_with_order(self, name: str, order: npt.NDArray[int], nan_mask: npt.NDArray):
+        dt = self.read(name)
+        tmp = dt[order] * nan_mask
+        return tmp[:, None]
+
+    def get_data_object(self, ptype: str, leaf_order, nan_mask):
+        """Return a dictionary of field name to delayed read functions."""
+        data = {}
+        for k, (_pos, _name, _scale, unit, _dtype) in self.metadata.items():
+            data[ptype, k] = (
+                partial(self.read_with_order, k, leaf_order, nan_mask),
+                unit,
+            )
+        return data
+
+
 def load_cutout(
     filename: str | Path,
     verbose: bool = True,
     version: int | list[tuple[str, Scale, str, str]] = 1,
-    h0 = 0.672699966430664,
-    boxsize = 50.,
-    omega_m = 0.313899993896484,
-    omega_l = 0.686094999313354,
-    omega_b = 0.4916,
+    h0=0.672699966430664,
+    boxsize=50.0,
+    omega_m=0.313899993896484,
+    omega_l=0.686094999313354,
+    omega_b=0.4916,
 ):
     """Load a Megatron cutout file as a yt dataset.
 
@@ -356,6 +397,13 @@ def load_cutout(
     else:
         header = version
 
+    # Create unyt registry
+    registry = unyt.UnitRegistry()
+    io_handler = IOHandler(
+        filename=path,
+        unyt_registry=registry,
+    )
+
     data = {}
     with FortranFile(path, "r") as ff:
         # Seek to end to compute file size
@@ -364,18 +412,25 @@ def load_cutout(
         ff.seek(0)
 
         prog = tqdm if verbose and yt.is_root() else lambda x, *args, **kwargs: x
-        for name, scale, _unit, dtype in prog(header, desc="Loading gas cutout"):
-            data[name] = ff.read_vector(dtype)
+        for name, scale, unit, dtype in prog(header, desc="Loading gas cutout"):
+            if name in ("x", "y", "z", "dx", "redshift"):
+                raw_data = ff.read_vector(dtype)
 
-            if scale == Scale.LOG and USE_NUMEXPR:
-                ne.evaluate("10 ** data", out=data[name])
-            elif scale == Scale.LOG:
-                data[name] = 10**data[name]
+                if scale == Scale.LOG and USE_NUMEXPR:
+                    ne.evaluate("10 ** raw_data", out=raw_data)
+                elif scale == Scale.LOG:
+                    raw_data = 10**raw_data
+
+                data[name] = raw_data
+            else:
+                print(name, scale, unit, dtype)
+                io_handler.metadata[name] = ff.tell(), name, scale, unit, dtype
+                ff.skip()
 
         # Make sure we read the entire file
         assert ff.tell() == endpos, "Did not read entire file"
 
-    redshift = data.pop("redshift")()[0][0]
+    redshift = data.pop("redshift")[0]
     aexp = 1 / (1 + redshift)
 
     # Create a unyt registry
@@ -384,18 +439,18 @@ def load_cutout(
     registry.add("unitary", float(boxsize_physical.to("m")), length)
 
     # Get xc (no need for unit conversion thus)
-    xc = np.stack([data.pop(_)()[0] for _ in "xyz"], axis=-1)
+    xc = np.stack([data.pop(_) for _ in "xyz"], axis=-1)
 
     center = (xc.max(axis=0) + xc.min(axis=0)) / 2
 
     # Special case for dx (needs precise conversion from pc)
-    dx = data.pop("dx")()[0] / 3.08e18 * unyt.pc / boxsize_physical
+    dx = data.pop("dx") / 3.08e18 * unyt.pc / boxsize_physical
 
-    # Convert everything else
-    for name, _, unit, dtype in header:
-        if name not in data:
-            continue
-        data[name] = unyt.unyt_array(data[name], unit, registry=registry)
+    # # Convert everything else
+    # for name, _, unit, dtype in header:
+    #     if name not in data:
+    #         continue
+    #     data[name] = unyt.unyt_array(data[name], unit, registry=registry)
 
     # Get level
     level = np.round(np.log2(1 / dx)).astype(int)
@@ -431,12 +486,15 @@ def load_cutout(
 
     nan_mask = np.where(leaf_order < 0, np.nan, 1)
 
-    def reorder(dt):
-        tmp = dt[leaf_order] * nan_mask
-        return tmp[:, None]
+    data = io_handler.get_data_object("gas", leaf_order, nan_mask)
 
-    yt.mylog.debug("Reordering data according to octree leaf order")
-    data = {("gas", k): reorder(v) for k, v in data.items()}
+    # def reorder(field):
+    #     dt = io_handler.read(field)
+    #     tmp = dt[leaf_order] * nan_mask
+    #     return tmp[:, None]
+
+    # yt.mylog.debug("Reordering data according to octree leaf order")
+    # data = {("gas", k): lambda: reorder(k) for k, v in data.items()}
 
     params = {
         "cosmological_simulation": True,
