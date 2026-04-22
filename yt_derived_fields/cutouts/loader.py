@@ -1,5 +1,6 @@
 from enum import Enum
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import numpy.typing as npt
@@ -32,9 +33,9 @@ class Scale(Enum):
 star_headers: dict[int, list[tuple[str, Scale, str, str]]] = {
     1: [],
     2: [
-        ("particle_position_x", Scale.LINEAR, "unitary", "d"),
-        ("particle_position_y", Scale.LINEAR, "unitary", "d"),
-        ("particle_position_z", Scale.LINEAR, "unitary", "d"),
+        ("particle_position_x", Scale.LINEAR, "code_length", "d"),
+        ("particle_position_y", Scale.LINEAR, "code_length", "d"),
+        ("particle_position_z", Scale.LINEAR, "code_length", "d"),
         ("particle_velocity_x", Scale.LINEAR, "cm/s", "f"),
         ("particle_velocity_y", Scale.LINEAR, "cm/s", "f"),
         ("particle_velocity_z", Scale.LINEAR, "cm/s", "f"),
@@ -52,39 +53,6 @@ star_headers: dict[int, list[tuple[str, Scale, str, str]]] = {
         ("mass", Scale.LOG, "Msun", "f"),
     ],
 }
-
-
-def load_star_cutout(fname: str | Path, boxsize, h0, aexp, data_source=None):
-    if isinstance(fname, str):
-        fname = Path(fname)
-
-    with FortranFile(fname, "r") as ff:
-        ff.seek(0, 2)
-        endpos = ff.tell()
-        ff.seek(0)
-
-        header = star_headers[2]
-
-        nstars = ff.read_int()
-
-        data = {}
-
-        for name, scale, unit, dtype in tqdm(header, desc="Loading star cutout"):
-            raw_data = ff.read_vector(dtype).astype("d")
-            if scale == Scale.LOG:
-                if USE_NUMEXPR:
-                    ne.evaluate("10 ** raw_data", out=raw_data)
-                else:
-                    raw_data = 10**raw_data
-
-            assert len(raw_data) == nstars, f"Expected {nstars} stars but got {len(raw_data)} for field {name}"
-
-            data[name] = (raw_data, unit)
-
-        assert ff.tell() == endpos, "Did not read entire file"
-
-    return yt.load_particles(data, data_source=data_source)
-
 
 headers: dict[int, list[tuple[str, Scale, str, str]]] = {
     1: [
@@ -309,20 +277,32 @@ headers: dict[int, list[tuple[str, Scale, str, str]]] = {
 
 @dataclass
 class IOHandler:
-    filename: str | Path
-    metadata: dict[str, tuple[int, str, Scale, str, str]] = field(default_factory=dict)
-    fp: FortranFile = field(init=False, repr=False)
+    field_filename: str | Path
+    particle_filename: str | Path
+    field_metadata: dict[str, tuple[int, str, Scale, str, str]] = field(default_factory=dict)
+    particle_metadata: dict[str, tuple[int, str, Scale, str, str]] = field(default_factory=dict)
+
+    field_fp: FortranFile = field(init=False, repr=False)
 
     def __post_init__(self):
-        self.fp = FortranFile(self.filename)
+        self.field_fp = FortranFile(self.field_filename)
+        self.particles_fp = FortranFile(self.particle_filename)
 
     def __delete__(self, instance):
-        self.fp.close()
+        try:
+            self.field_fp.close()
+        except Exception:
+            pass
+        try:
+            self.particles_fp.close()
+        except Exception:
+            pass
 
-    def read(self, name: str):
-        pos, name, scale, _unit, dtype = self.metadata[name]
-        self.fp.seek(pos)
-        raw_data = self.fp.read_vector(dtype)
+    @classmethod
+    def read_data(cls, fp: FortranFile, metadata: dict, key: str):
+        pos, name, scale, _unit, dtype = metadata[key]
+        fp.seek(pos)
+        raw_data = fp.read_vector(dtype)
         if scale == Scale.LOG and USE_NUMEXPR:
             ne.evaluate("10 ** raw_data", out=raw_data)
         elif scale == Scale.LOG:
@@ -330,17 +310,38 @@ class IOHandler:
 
         return raw_data
 
-    def read_with_order(self, name: str, order: npt.NDArray[int], nan_mask: npt.NDArray):
-        dt = self.read(name)
+    def read_field(self, name: str) -> npt.NDArray:
+        return self.read_data(self.field_fp, self.field_metadata, name)
+
+    def read_field_in_order(self, name: str, order: npt.NDArray[int], nan_mask: npt.NDArray) -> npt.NDArray:
+        dt = self.read_field(name)
         tmp = dt[order] * nan_mask
         return tmp[:, None]
 
-    def get_data_object(self, ptype: str, leaf_order, nan_mask):
+    def read_particle(self, name: str) -> npt.NDArray:
+        return self.read_data(self.particles_fp, self.particle_metadata, name)
+
+    def get_data_object(
+        self,
+        *,
+        ftype: str,
+        ptype: str,
+        leaf_order: npt.NDArray[int],
+        nan_mask: npt.NDArray,
+    ) -> dict[tuple[str, str], tuple[Union[callable, npt.NDArray], str]]:
         """Return a dictionary of field name to delayed read functions."""
         data = {}
-        for k, (_pos, _name, _scale, unit, _dtype) in self.metadata.items():
+        # Loader for field values
+        for k, (_pos, _name, _scale, unit, _dtype) in self.field_metadata.items():
+            data[ftype, k] = (
+                partial(self.read_field_in_order, k, leaf_order, nan_mask),
+                unit,
+            )
+
+        # Loader for particles
+        for k, (_pos, _name, _scale, unit, _dtype) in self.particle_metadata.items():
             data[ptype, k] = (
-                partial(self.read_with_order, k, leaf_order, nan_mask),
+                self.read_particle(k),
                 unit,
             )
         return data
@@ -366,7 +367,7 @@ def load_cutout(
         The boxsize of the original simulation in comoving Mpc/h. Default is 50.
     verbose : bool
         Whether to show a progress bar when loading the data. Default is True.
-    version : int or list of (name, scale, unit) tuples
+    version : int or list of (name, scale, unit, dtype) tuples
         The version of the cutout format to load. If an int, it must be a key
         in the `headers` dict. If a list, it should be a custom header
         specification. Default is 2.
@@ -385,21 +386,26 @@ def load_cutout(
         The loaded yt dataset.
     """
     original_path = path = Path(filename)
+    star_path = path.parent / path.name.replace("gas", "stars")
 
     if not path.exists():
         path = Path(pooch.retrieve(str(filename), known_hash=None))
 
     if isinstance(version, int):
         header = headers[version]
+        particle_header = star_headers[version]
     else:
         header = version
+        particle_header = []
 
     # Create unyt registry
     io_handler = IOHandler(
-        filename=path,
+        field_filename=path,
+        particle_filename=star_path,
     )
 
     data = {}
+    # Handle fields
     with FortranFile(path, "r") as ff:
         # Seek to end to compute file size
         ff.seek(0, 2)
@@ -418,11 +424,18 @@ def load_cutout(
 
                 data[name] = raw_data
             else:
-                io_handler.metadata[name] = ff.tell(), name, scale, unit, dtype
+                io_handler.field_metadata[name] = ff.tell(), name, scale, unit, dtype
                 ff.skip()
 
         # Make sure we read the entire file
         assert ff.tell() == endpos, "Did not read entire file"
+
+    if star_path.exists():
+        with FortranFile(star_path, "r") as ff:
+            _nstar = ff.read_int()
+            for name, scale, unit, dtype in particle_header:
+                io_handler.particle_metadata[name] = ff.tell(), name, scale, unit, dtype
+                ff.skip()
 
     redshift = data.pop("redshift")[0]
     aexp = 1 / (1 + redshift)
@@ -472,7 +485,12 @@ def load_cutout(
 
     nan_mask = np.where(leaf_order < 0, np.nan, 1)
 
-    data = io_handler.get_data_object("gas", leaf_order, nan_mask)
+    data = io_handler.get_data_object(
+        ftype="gas",
+        ptype="star",
+        leaf_order=leaf_order,
+        nan_mask=nan_mask,
+    )
 
     params = {
         "cosmological_simulation": True,
@@ -530,8 +548,4 @@ def load_cutout(
     for element in metal_data.keys():
         create_density(element)
 
-    # Now try creating star dataset if possible
-    star_fname = ds.filename.replace("gas", "stars")
-    star_ds = load_star_cutout(original_path.parent / star_fname, boxsize, h0, aexp, ds.all_data())
-
-    return ds, star_ds
+    return ds
