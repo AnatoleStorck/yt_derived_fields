@@ -144,6 +144,7 @@ def generate_pop_II_spec_interp(
 def get_pop_2_spectrum(
     data,
     combined: bool = False,
+    total_luminosity: bool = False,
     lmin: int = 1150,
     lmax: int = 10000,
     downsample: bool = True,
@@ -152,6 +153,7 @@ def get_pop_2_spectrum(
     n_batch: int = 5000,
     ncpu_max: int = 10,
     data_dir: Optional[str] = None,
+    wavelength_only: bool = False,
 ):
     """
     Calculates the Population II spectrum (BPASS v2.2.1).
@@ -165,6 +167,7 @@ def get_pop_2_spectrum(
             - data["pop2", "age"]
             - data["pop2", "particle_initial_mass"]
       combined: sum spectra over all particles if True
+      total_luminosity: if True, return the total luminosity (integrated over wavelength) instead of the spectrum
       lmin, lmax: wavelength range in Å
       downsample: block-mean spectra and wavelengths by ds_nwv
       ds_nwv: integer downsampling factor
@@ -172,11 +175,18 @@ def get_pop_2_spectrum(
       ncpu_max: max CPUs for joblib parallelization
       data_dir: directory containing reduced_spectra-bin-imf_chab300.*.dat.npy files
       progress: if True, show a tqdm progress bar when parallelizing
+      wavelength_only: if True, skip interpolation and return the wavelength array corresponding to the spectra bins
 
     Returns:
       - If combined=True: 1D unyt array (n_wvl or n_wvl_ds,) with erg/s
       - If combined=False: 2D array (N_pop2, n_wvl or n_wvl_ds) with erg/s
     """
+
+    if wavelength_only:
+        return wavelength_space(lmin, lmax, downsample, ds_nwv) * u.angstrom
+
+    if total_luminosity and combined:
+        raise ValueError("total_luminosity=True is not compatible with combined=True; total luminosity is a single number, not a spectrum.")
 
     N_pop2 = int(np.sum(data["pop2", "particle_ones"]))
     if N_pop2 == 0:
@@ -214,6 +224,8 @@ def get_pop_2_spectrum(
         p2_spec = spec_interp_p2(to_interp) * initial_masses[:, None]
         if combined:
             p2_spec = p2_spec.sum(axis=0)
+        elif total_luminosity:
+            p2_spec = p2_spec.sum(axis=1)
         return p2_spec * u.erg / u.s
 
     # Chunk the data for efficient parallelization
@@ -239,5 +251,7 @@ def get_pop_2_spectrum(
     p2_spec = np.array(results)
     if combined:
         p2_spec = p2_spec.sum(axis=0)
+    elif total_luminosity:
+        p2_spec = p2_spec.sum(axis=1)
 
     return p2_spec * u.erg / u.s
