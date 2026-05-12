@@ -1,19 +1,19 @@
+from dataclasses import dataclass, field
 from enum import Enum
+from functools import partial
 from pathlib import Path
 from typing import Union
 
+import astropy
 import numpy as np
 import numpy.typing as npt
 import pooch
 import unyt
-from unyt.dimensions import length
-from dataclasses import dataclass, field
-from functools import partial
 import yt
 from cython_fortran_file import FortranFile
 from tqdm import tqdm
+from yt.utilities.cosmology import Cosmology
 from yt_experiments.octree.converter import OctTree
-from unyt import unyt_array
 
 from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import metal_data
 
@@ -355,7 +355,7 @@ def load_cutout(
     boxsize=50.0,
     omega_m=0.313899993896484,
     omega_l=0.686094999313354,
-    omega_b=0.4916,
+    omega_b=0.04916,
 ):
     """Load a Megatron cutout file as a yt dataset.
 
@@ -492,9 +492,13 @@ def load_cutout(
         nan_mask=nan_mask,
     )
 
+    cosmo = astropy.cosmology.FlatLambdaCDM(H0=h0 * 100, Om0=omega_m, Ob0=omega_b)
+    current_time = cosmo.age(redshift).to("Gyr").value
+
     params = {
         "cosmological_simulation": True,
         "current_redshift": redshift,
+        "current_time": current_time,
         "hubble_constant": h0,
         "omega_matter": omega_m,
         "omega_lambda": omega_l,
@@ -512,6 +516,14 @@ def load_cutout(
         length_unit=(boxsize_physical.value, str(boxsize_physical.units)),
         mass_unit=(1, "Msun"),
         time_unit=(1, "Gyr"),
+        sim_time = current_time,
+    )
+
+    ds.cosmology = Cosmology(
+        hubble_constant=ds.hubble_constant,
+        omega_matter=ds.omega_matter,
+        omega_lambda=ds.omega_lambda,
+        unit_registry=ds.unit_registry,
     )
 
     ds.domain_center = ds.arr(center, "code_length")
