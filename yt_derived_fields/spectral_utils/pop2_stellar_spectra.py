@@ -46,7 +46,7 @@ def _resolve_bpass_dir(data_dir: Optional[str]) -> Path:
         candidates.append(Path(data_dir))
     # Fallback onto known paths (glamdring, infinity)
     candidates.append(Path("/mnt/glacier/DATA/bpass_v2.2.1_imf_chab300"))
-    candidates.append(Path("/data100/cadiou/Megatron/DATA/bpass_v2.2.1_imf_chab300"))
+    candidates.append(Path("/data122/cadiou/Megatron/DATA/bpass_v2.2.1_imf_chab300"))
 
     for base in candidates:
         test_file = base / f"reduced_spectra-bin-imf_chab300.{METAL_NAMES[0]}.dat.npy"
