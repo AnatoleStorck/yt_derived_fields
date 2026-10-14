@@ -25,7 +25,7 @@ def _resolve_data_paths(data_dir: Optional[str]) -> tuple[Path, Path]:
         candidates.append(Path(data_dir))
     # Fallback onto known paths (glamdring, infinity)
     candidates.append(Path("/mnt/glacier/DATA/Pop_III_spectra"))
-    candidates.append(Path("/data100/cadiou/Megatron/DATA/Pop_III_spectra"))
+    candidates.append(Path("/data122/cadiou/Megatron/DATA/Pop_III_spectra"))
 
     for base in candidates:
         spec = base / "reduced_popiii_spec.npy"

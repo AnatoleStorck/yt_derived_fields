@@ -24,7 +24,7 @@ if data_dir:
     candidates.append(Path(data_dir))
 # Fallback onto known paths (glamdring, infinity)
 candidates.append(Path("/mnt/glacier/chianti/"))
-candidates.append(Path("/data100/cadiou/Megatron/chianti/"))
+candidates.append(Path("/data122/cadiou/Megatron/chianti/"))
 
 chianti_path = None
 for base in candidates:
@@ -37,7 +37,7 @@ if chianti_path is None:
     "Give a valid data directory, or place files under one of the known paths."
 )
 
-os.environ["XUVTOP"] = chianti_path
+os.environ["XUVTOP"] = str(chianti_path)
 
 print("setting environment variable XUVTOP to", os.environ["XUVTOP"])
 import ChiantiPy.core as ch

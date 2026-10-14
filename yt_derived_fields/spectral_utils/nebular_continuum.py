@@ -279,7 +279,7 @@ def get_nebular_continuum_two_photon(
     nebc = pn.Continuum()
     wvls = wavelength_space(lmin=lmin, lmax=lmax, downsample=downsample, ds_nwv=ds_nwv)
     two_photon_generic = nebc.two_photon(1e4, 1, wvls)
-    two_phot_erg_s = np.trapz(two_photon_generic, wvls)
+    two_phot_erg_s = np.trapezoid(two_photon_generic, wvls)
 
     # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
     CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))

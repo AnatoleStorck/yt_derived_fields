@@ -203,6 +203,36 @@ def _initialize_pop2_spectral_fields(ds, parallel=True):
         display_name="Pop. II Combined Star Spectra",
     )
 
+    def _pop2_spectra_wavelengths(field, data):
+
+        pop2_spec_wavelengths = pop2_stellar_spectra.get_pop_2_spectrum(data, wavelength_only=True)
+
+        return pop2_spec_wavelengths
+
+    ds.add_field(
+        name=("pop2", "spectra_wavelengths"),
+        function=_pop2_spectra_wavelengths,
+        #force_override=True,
+        units="Angstrom",
+        sampling_type="particle",
+        vector_field=True,
+        display_name="Pop. II Star Spectra Wavelengths",
+    )
+
+    def _pop2_luminosity(field, data):
+        pop2_lum = pop2_stellar_spectra.get_pop_2_spectrum(data, total_luminosity=True, parallel=parallel)
+
+        return pop2_lum
+
+    ds.add_field(
+        name=("pop2", "luminosity"),
+        function=_pop2_luminosity,
+        #force_override=True,
+        units="erg/s",
+        sampling_type="particle",
+        display_name="Pop. II Star Total Luminosity",
+    )
+
 
     # An attempt to generate a spectra per cell. The idea is to check the stars in
     # each cell and assign them the summed stellar spectra. In practice, one would
