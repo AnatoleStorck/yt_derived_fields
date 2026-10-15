@@ -15,7 +15,7 @@ from tqdm import tqdm
 from yt.utilities.cosmology import Cosmology
 from yt_experiments.octree.converter import OctTree
 
-from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import metal_data
+from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import metal_data, prim_data
 
 try:
     import numexpr as ne
@@ -291,12 +291,12 @@ class IOHandler:
     def __delete__(self, instance):
         try:
             self.field_fp.close()
-        except Exception:
-            pass
+        except Exception as e:
+            yt.mylog.error("An error occured: %r", e)
         try:
             self.particles_fp.close()
-        except Exception:
-            pass
+        except Exception as e:
+            yt.mylog.error("An error occured: %r", e)
 
     @classmethod
     def read_data(cls, fp: FortranFile, metadata: dict, key: str):
@@ -350,7 +350,7 @@ class IOHandler:
 def load_cutout(
     filename: str | Path,
     verbose: bool = True,
-    version: int | list[tuple[str, Scale, str, str]] = 1,
+    version: int | list[tuple[str, Scale, str, str]] = 2,
     h0=0.672699966430664,
     boxsize=50.0,
     omega_m=0.313899993896484,
@@ -428,7 +428,8 @@ def load_cutout(
                 ff.skip()
 
         # Make sure we read the entire file
-        assert ff.tell() == endpos, "Did not read entire file"
+        if ff.tell() != endpos:
+            raise RuntimeError("Did not read entire file")
 
     if star_path.exists():
         with FortranFile(star_path, "r") as ff:
@@ -516,7 +517,7 @@ def load_cutout(
         length_unit=(boxsize_physical.value, str(boxsize_physical.units)),
         mass_unit=(1, "Msun"),
         time_unit=(1, "Gyr"),
-        sim_time = current_time,
+        sim_time=current_time,
     )
 
     ds.cosmology = Cosmology(
@@ -535,7 +536,7 @@ def load_cutout(
         elem_name = metal_data[element]["name"]
         elem_mass = metal_data[element]["mass"]
 
-        def _metal_density(field, data):
+        def _metal_density(data):
             return data["gas", f"{elem_name}_number_density"] * elem_mass
 
         ds.add_field(
@@ -546,7 +547,7 @@ def load_cutout(
             sampling_type="cell",
         )
 
-        def _metal_mass_fraction(field, data):
+        def _metal_mass_fraction(data):
             return data["gas", f"{elem_name}_density"] / data["gas", "density"]
 
         ds.add_field(
@@ -557,7 +558,62 @@ def load_cutout(
             sampling_type="cell",
         )
 
+    gas = ds.fields.gas
+    # Create the density/number density entries
     for element in metal_data.keys():
         create_density(element)
+
+    ds.add_field(
+        ("gas", "hydrogen_density"),
+        lambda data: data["gas", "density"] * prim_data["H"]["massFrac"],
+        units="mp/cm**3",
+        sampling_type="cell",
+    )
+
+    ds.add_field(
+        ("gas", "hydrogen_number_density"),
+        lambda data: data["gas", "density"] * (prim_data["H"]["massFrac"] / prim_data["H"]["mass"]),
+        units="1/cm**3",
+        sampling_type="cell",
+    )
+
+    ds.add_field(
+        ("gas", "helium_density"),
+        lambda data: data["gas", "density"] * prim_data["He"]["massFrac"],
+        units="mp/cm**3",
+        sampling_type="cell",
+    )
+
+    ds.add_field(
+        ("gas", "helium_number_density"),
+        lambda data: data["gas", "density"] * (prim_data["He"]["massFrac"] / prim_data["He"]["mass"]),
+        units="1/cm**3",
+        sampling_type="cell",
+    )
+
+    # Note: HeI isn't defined -> let's derive it
+    ds.add_field(
+        ("gas", "helium_01"),
+        1 - gas.helium_02 - gas.helium_03,
+        units="1",
+    )
+
+    # Create the ion number densities
+    all_data = metal_data | prim_data
+    for element in all_data.keys():
+        elem_name = all_data[element]["name"]
+
+        nelem = getattr(gas, f"{elem_name}_number_density")
+        rhoelem = getattr(gas, f"{elem_name}_density")
+
+        for i in range(1, all_data[element]["Nion"] + 1):
+            xion = getattr(gas, f"{elem_name}_{i:02d}", None)
+            if not xion:
+                break
+            fname = ("gas", f"{elem_name}_{i:02d}_number_density")
+            ds.add_field(fname, xion * nelem, units="1/cm**3")
+
+            fname = ("gas", f"{elem_name}_{i:02d}_density")
+            ds.add_field(fname, xion * rhoelem, units="mp/cm**3")
 
     return ds

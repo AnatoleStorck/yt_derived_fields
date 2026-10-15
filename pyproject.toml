@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "unyt",
     "pooch",
+    "numexpr",
 ]
 
 
