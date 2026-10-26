@@ -77,10 +77,10 @@ def stromgren_correction_pipeline(ds):
         metal = data["young_pop2", "metallicity"]
 
         if isinstance(data, FieldDetector):
-            return np.zeros(metal.shape) * u.erg / u.s
+            return np.zeros(metal.shape) / u.s
 
         # get the interpolation matrix
-        # (age, metal) --> ionizing luminosity (erg/s) # TODO: check units
+        # (age, metal) --> ionizing photons (Q | s^-1)
         sed_path = _resolve_SED_dir(None)
         age_bins, metal_bins, mif = load_SED_from_sim(
             top_dir=sed_path, ngroups=8, SED_isEgy=True
@@ -100,15 +100,15 @@ def stromgren_correction_pipeline(ds):
 
         ion_lums = 10.0**mif(pp) * masses[:, np.newaxis]
 
-        # Take group 4 (13.6-24.6 eV) which is the relevant one for H ionization
-        ion_lums = ion_lums[:, 4]
+        # Take group 4-7 (ionizing photons) and sum over them
+        ion_lums = ion_lums[:, 4:8].sum(axis=1)
 
-        return ion_lums * u.erg / u.s # TODO: check units
+        return ion_lums / u.s
 
     ds.add_field(
         name=("young_pop2", "ionizing_luminosity"),
         function=star_ion_lums,
-        units="erg/s",
+        units="1/s",
         sampling_type="particle",
         display_name="Young Pop. II Star Ionizing Luminosity"
     )
@@ -120,10 +120,10 @@ def stromgren_correction_pipeline(ds):
 
     def is_stromgren_unresolved(field, data):
 
-        ion_lums = data[deposit_ionLum].in_units("erg/s").d
+        ion_lums = data[deposit_ionLum].in_units("1/s")
 
-        nH = data["gas", "hydrogen_number_density"].in_units("cm**-3").d
-        xHI = data["gas", "hydrogen_01"].d
+        nH = data["gas", "hydrogen_number_density"].in_units("cm**-3")
+        xHI = data["gas", "hydrogen_01"].in_units("")
 
         dx = data["gas", "dx"].in_units("pc")
 
@@ -131,17 +131,17 @@ def stromgren_correction_pipeline(ds):
         HII_temp = 1e4
         lam_HI = 315614.0/HII_temp
         alphab = (1.269e-13 * (lam_HI**1.503) /
-                  (1. + (lam_HI/0.522)**0.47)**1.923) # cm^3 s^-1
+                  (1. + (lam_HI/0.522)**0.47)**1.923) * u.cm**3 / u.s
 
         nHI = nH * xHI
 
-        r_strom = np.cbrt((3.0 * ion_lums) / (4.0 * np.pi * nHI**2 * alphab)) * u.cm
+        r_strom = np.cbrt((3.0 * ion_lums) / (4.0 * np.pi * nHI**2 * alphab)).to("pc")
 
         bool_arr = np.full_like(dx, False, dtype=bool)
 
         # two things to check: is r_strom > 0 (does it have stars), if not then don't flag it as unresolved.
         # If r_strom > 0, then check if it's smaller than dx/2 (i.e. unresolved)
-        bool_arr[r_strom.to("pc") > 0] = r_strom.to("pc")[r_strom.to("pc") > 0] < (dx[r_strom.to("pc") > 0] / 2.0)
+        bool_arr[r_strom > 0] = r_strom[r_strom > 0] < (dx[r_strom > 0] / 2.0)
 
         return np.array(bool_arr)
 
