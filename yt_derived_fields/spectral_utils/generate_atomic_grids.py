@@ -526,5 +526,8 @@ for rec_line in rec_line_dict:
 
 # Save the emissivity dictionaries to a file
 
-np.save("coll_line_dict.npy", coll_line_dict, allow_pickle=True)
-np.save("rec_line_dict.npy", rec_line_dict, allow_pickle=True)
+# Saved next to this script, where emission_derived_fields.py looks for them
+out_dir = Path(__file__).parent
+np.save(out_dir / "coll_line_dict.npy", coll_line_dict, allow_pickle=True)
+np.save(out_dir / "rec_line_dict.npy", rec_line_dict, allow_pickle=True)
+print(f"Saved coll_line_dict.npy and rec_line_dict.npy to {out_dir}")
