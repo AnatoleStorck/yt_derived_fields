@@ -181,37 +181,6 @@ def get_emission_lines(
             if cloudy_name in line_list:
                 line_index_map[yt_name] = line_list.index(cloudy_name)
 
-        def get_cloudy_line_luminosity(all_emission_lines, line_idx, n_cells):
-            arr = np.asarray(all_emission_lines)
-
-            if line_idx is None or arr.size == 0:
-                return np.zeros(n_cells)
-
-            if arr.ndim == 1:
-                if line_idx == 0 and arr.shape[0] == n_cells:
-                    return arr
-                return np.zeros(n_cells)
-
-            # Preferred convention: (n_lines, n_cells)
-            if arr.shape[0] > line_idx and arr.shape[1] == n_cells:
-                return arr[line_idx, :]
-
-            # Alternate convention: (n_cells, n_lines)
-            if arr.shape[1] > line_idx and arr.shape[0] == n_cells:
-                return arr[:, line_idx]
-
-            # Last-resort fallbacks if dimensions are unexpected.
-            if arr.shape[0] > line_idx:
-                candidate = arr[line_idx, :]
-                if candidate.shape[0] == n_cells:
-                    return candidate
-            if arr.shape[1] > line_idx:
-                candidate = arr[:, line_idx]
-                if candidate.shape[0] == n_cells:
-                    return candidate
-
-            return np.zeros(n_cells)
-
     # line in the form of, for example, "O3-5007"
     def coll_line(ds, line):
         def _get_coll_line_emissivity(field, data):
@@ -290,9 +259,7 @@ def get_emission_lines(
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
-                    loc_lum_cloudy = get_cloudy_line_luminosity(
-                        all_emission_lines, line_idx, int(cells_to_replace.sum())
-                    )
+                    loc_lum_cloudy = all_emission_lines[:, line_idx]
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
@@ -406,9 +373,7 @@ def get_emission_lines(
 
                 line_idx = line_index_map.get(line)
                 if line_idx is not None:
-                    loc_lum_cloudy = get_cloudy_line_luminosity(
-                        all_emission_lines, line_idx, int(cells_to_replace.sum())
-                    )
+                    loc_lum_cloudy = all_emission_lines[:, line_idx]
                 else:
                     loc_lum_cloudy = np.zeros(int(cells_to_replace.sum()))
 
