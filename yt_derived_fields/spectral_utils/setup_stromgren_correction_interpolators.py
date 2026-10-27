@@ -34,14 +34,6 @@ def _resolve_cloudy_dir(data_dir: Optional[str]) -> Path:
     )
 
 
-path_cloudy_update = _resolve_cloudy_dir(None)
-
-path_cloudy_interp_pop2 = f"{path_cloudy_update}/BPASS"
-path_cloudy_interp_pop3 = f"{path_cloudy_update}/MEGATRON_cloudy_models_popIII_nip"
-
-
-
-
 def load_SED_from_sim(top_dir, ngroups=8, SED_isEgy=True):
     """
     Function to load in the SED tables from a ramses simulation
@@ -73,6 +65,8 @@ def get_cloudy_el_interpolator():
     only be used for the runs with the constant IMF BPASS models.
     """
     import json
+
+    path_cloudy_update = _resolve_cloudy_dir(None)
 
     top_dirs = [
         "zem5", "zem4", "z001", "z002", "z003", "z004",
@@ -189,6 +183,8 @@ def get_cloudy_el_interpolator_IR():
     only be used for the runs with the constant IMF BPASS models.
     """
     import json
+
+    path_cloudy_update = _resolve_cloudy_dir(None)
 
     top_dirs = [
         "zem5", "zem4", "z001", "z002", "z003", "z004",
@@ -338,6 +334,8 @@ def initialize_cloudy_nebc_unresolved(downsample=False,ds_nwv=5):
     Create the interpolating function for the nebular continuum for unresolved stromgren spheres based on cloudy calculations.
     """
     import json
+
+    path_cloudy_update = _resolve_cloudy_dir(None)
 
     top_dirs = ["zem5", "zem4", "z001", "z002", "z003", "z004", "z006", "z008", "z010", "z014", "z020", "z030"]
     metals = np.array([1e-5, 1e-4, 0.001, 0.002, 0.003, 0.004, 0.006, 0.008, 0.010, 0.014, 0.020, 0.030])
