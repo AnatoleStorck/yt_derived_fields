@@ -266,6 +266,7 @@ def get_nebular_continuum_two_photon(
     """
 
     nH = data["gas", "hydrogen_number_density"].to("cm**-3").value
+    xH_I = data["gas", "hydrogen_01"].value
     temperatures = data["gas", "temperature"].to("K").value
 
     cell_volumes = data["gas", "volume"].to("cm**3").value
@@ -283,7 +284,7 @@ def get_nebular_continuum_two_photon(
 
     # Get the CIE HII fraction --> needed below to make sure cooling isn't too strong
     CIE_HII = coll_ion_H(temperatures) / (coll_ion_H(temperatures) + recomb_ion_H(temperatures))
-    HI_density_alt = nH * np.minimum(nH, 1.0 - CIE_HII)
+    HI_density_alt = nH * np.minimum(xH_I, 1.0 - CIE_HII)
 
     print("Note: the two-photon continuum is not a single-value field, but a spectrum for each cell.")
 
