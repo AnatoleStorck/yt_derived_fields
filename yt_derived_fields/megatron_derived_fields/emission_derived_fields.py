@@ -71,11 +71,11 @@ def get_rec_line_dict() -> dict[str, Any]:
 
 def generate_dust_depletion_field(ds):
 
-    elements = ["Fe", "O", "N", "C", "Mg", "Ne", "Si", "S"," Ca"," CO"]
+    elements = ["Fe", "O", "N", "C", "Mg", "Ne", "Si", "S", "Ca", "CO"]
     dep_solar = [0.01, 0.728, 0.603, 0.501, 0.163, 1.0, 0.1, 1.0, 0.003, 1.0]
 
-    for el, dep in zip(elements, dep_solar):
-        def _get_depletion(field, data):
+    def _get_depletion(dep):
+        def _generate_depletion(field, data):
 
             #
             # Calculates the expected dust depletion
@@ -116,10 +116,12 @@ def generate_dust_depletion_field(ds):
             depletion_table[filt] = 1.0 - ( (1.0 - dep) * np.minimum(1.0, 162.0/y[filt]) )
 
             return depletion_table
+        return _generate_depletion
 
+    for el, dep in zip(elements, dep_solar):
         ds.add_field(
             name=("gas", f"{el}_dep"),
-            function=_get_depletion,
+            function=_get_depletion(dep),
             units="",
             sampling_type="cell",
             display_name=f"{el} Depletion Factor",
