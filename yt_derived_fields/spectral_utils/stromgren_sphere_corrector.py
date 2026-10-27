@@ -231,7 +231,7 @@ def rescale_emission(df, all_emission_lines, line_list):
     tmp1[tmp1 > 1.0] = 1.0
     C_over_H_cloudy += np.log10(2.69E-04) + df["[O/H]"] + df["O_dep"] + tmp1 
     tmp = np.array(df["[C/H]"] + df["C_dep"] + np.log10(2.69E-04))
-    rescale = np.array(tmp / C_over_H_cloudy)
+    rescale = np.array(10.**(tmp - C_over_H_cloudy))
     all_emission_lines[:,idx_carbon] *= rescale[:, np.newaxis]
 
     # Rescale nitrogen by deviation from solar
