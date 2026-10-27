@@ -308,7 +308,7 @@ def apply_stromgren_correction(
     replace_emission_lines = 10.**mif_cloudy(to_interpolate)
     replace_emission_lines = rescale_emission(df_strom, replace_emission_lines, line_list)
 
-    df_nans = df_strom[np.isnan(replace_emission_lines)[:,0]]
+    df_nans = df_strom[np.isnan(replace_emission_lines)[:,0]].copy()
     if len(df_nans) > 0:
         # First iteration
         df_nans.loc[:,"age"] += 1.0 # Try updating the age
@@ -318,14 +318,14 @@ def apply_stromgren_correction(
 
         # Second iteration
         if np.isnan(tmp)[:,0].sum() > 0:
-            df_nans.loc[:,"age"][np.isnan(tmp)[:,0]] += 1.0 # Try updating the age again
+            df_nans.loc[np.isnan(tmp)[:,0], "age"] += 1.0 # Try updating the age again
 
             to_interpolate = format_cloudy_interpolator(df_nans)
             tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list)
 
             # Third iteration
             if np.isnan(tmp)[:,0].sum() > 0:
-                df_nans.loc[:,"age"][np.isnan(tmp)[:,0]] += 1.0 # Try updating the age again
+                df_nans.loc[np.isnan(tmp)[:,0], "age"] += 1.0 # Try updating the age again
 
                 to_interpolate = format_cloudy_interpolator(df_nans)
                 tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list)
@@ -333,8 +333,8 @@ def apply_stromgren_correction(
                 # Fourth iteration, set the age back and lower Q
                 if np.isnan(tmp)[:,0].sum() > 0:
                     rescale_flux = np.zeros((len(df_nans),1))
-                    df_nans.loc[:,"age"][np.isnan(tmp)[:,0]] -= 3.0
-                    df_nans.loc[:,"ionizing_luminosity"][np.isnan(tmp)[:,0]] -= 1.0
+                    df_nans.loc[np.isnan(tmp)[:,0], "age"] -= 3.0
+                    df_nans.loc[np.isnan(tmp)[:,0], "ionizing_luminosity"] -= 1.0
                     rescale_flux[np.isnan(tmp)[:,0],0] = 1.0
 
                     to_interpolate = format_cloudy_interpolator(df_nans)
