@@ -314,24 +314,21 @@ def apply_stromgren_correction(
         df_nans.loc[:,"age"] += 1.0 # Try updating the age
 
         to_interpolate = format_cloudy_interpolator(df_nans)
-        replace_emission_lines = 10.**mif_cloudy(to_interpolate)
-        tmp = rescale_emission(df_nans, replace_emission_lines, line_list)
+        tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list)
 
         # Second iteration
         if np.isnan(tmp)[:,0].sum() > 0:
             df_nans.loc[:,"age"][np.isnan(tmp)[:,0]] += 1.0 # Try updating the age again
 
             to_interpolate = format_cloudy_interpolator(df_nans)
-            replace_emission_lines = 10.**mif_cloudy(to_interpolate)
-            tmp = rescale_emission(df_nans, replace_emission_lines, line_list)
+            tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list)
 
             # Third iteration
             if np.isnan(tmp)[:,0].sum() > 0:
                 df_nans.loc[:,"age"][np.isnan(tmp)[:,0]] += 1.0 # Try updating the age again
 
                 to_interpolate = format_cloudy_interpolator(df_nans)
-                replace_emission_lines = 10.**mif_cloudy(to_interpolate)
-                tmp = rescale_emission(df_nans, replace_emission_lines, line_list)
+                tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list)
 
                 # Fourth iteration, set the age back and lower Q
                 if np.isnan(tmp)[:,0].sum() > 0:
@@ -341,8 +338,7 @@ def apply_stromgren_correction(
                     rescale_flux[np.isnan(tmp)[:,0],0] = 1.0
 
                     to_interpolate = format_cloudy_interpolator(df_nans)
-                    replace_emission_lines = 10.**mif_cloudy(to_interpolate)
-                    tmp = rescale_emission(df_nans, replace_emission_lines, line_list) + rescale_flux
+                    tmp = rescale_emission(df_nans, 10.**mif_cloudy(to_interpolate), line_list) + rescale_flux
 
         replace_emission_lines[np.isnan(replace_emission_lines)[:,0]] = tmp
 
@@ -350,8 +346,8 @@ def apply_stromgren_correction(
     # # Check for nans again
     # # Note that there can occasionally be a nan for some high ionization lines
     # # so first check for those
-    # replace_emission_lines[:,53][np.isnan(replace_emission_lines[:,53])] = -50.0
-    # replace_emission_lines[:,54][np.isnan(replace_emission_lines[:,54])] = -50.0
+    replace_emission_lines[:,53][np.isnan(replace_emission_lines[:,53])] = -50.0
+    replace_emission_lines[:,54][np.isnan(replace_emission_lines[:,54])] = -50.0
     if (np.isnan(replace_emission_lines).sum() > 0):
         print("!!!!!! OMG !!!!!! --> you broke cloudy")
 
