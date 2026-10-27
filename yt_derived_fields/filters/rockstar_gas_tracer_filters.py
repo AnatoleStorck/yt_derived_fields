@@ -48,7 +48,7 @@ def particle_position_redefine_for_gas_tracers(field, data):
     are gas tracers. If there is more than one tracer in a cell, we reposition
     the tracers to space them out evenly in the cell.
     """
-    io_pos = data["io", "particle_position"]
+    io_pos = data["io", "particle_position"].copy()
     io_fam = data["io", "particle_family"]
 
     gas_tracer_filter = io_fam == 0
@@ -121,7 +121,7 @@ def particle_velocity_redefine_for_gas_tracers(field, data):
     (gas tracers do not have their own velocity). The velocity is perturbed
     by a small amount to avoid the detection of duplicate particles by rockstar.
     """
-    io_vel = data["io", "particle_velocity"]
+    io_vel = data["io", "particle_velocity"].copy()
     io_fam = data["io", "particle_family"]
 
     gas_tracer_filter = io_fam == 0
@@ -175,7 +175,7 @@ def particle_identity_rescaled(field, data):
     N_gas_tracer, N_dm = get_Npart(data.ds)
 
     io_fam = data["io", "particle_family"]
-    io_id = data["io", "particle_identity"]
+    io_id = data["io", "particle_identity"].copy()
 
     gas_tracer_filter = io_fam == 0
     star_filter = io_fam == 2
@@ -220,9 +220,9 @@ def dm_star_union(pfilter, data):
     mask = dm_filter
 
     star_filter = data[pfilter.filtered_type, "particle_family"] == 2
-    filter |= star_filter
+    mask |= star_filter
 
-    return filter
+    return mask
 
 
 def setup_dm_gas_tracers_field(ds, use_stars=True, use_gas_tracers=True):
