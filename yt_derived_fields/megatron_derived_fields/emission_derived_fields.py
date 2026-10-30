@@ -155,7 +155,7 @@ def get_emission_lines(
         chem_fields.create_chemistry_derived_fields(ds, electron_number_density=True)
 
     # generate dust depletion fields if not already present (needed for stromgren correction)
-    if fix_unres_stromgren and ("gas", "O_dep") not in ds.derived_field_list: # Check for one of the depletion fields
+    if ("gas", "O_dep") not in ds.derived_field_list: # Check for one of the depletion fields
         generate_dust_depletion_field(ds)
 
     # These dictionaries are used to store the emission line metadata, along with interpolation grids
@@ -224,7 +224,7 @@ def get_emission_lines(
 
             nel = data["gas", f"{met_data[el]['name']}_number_density"].to("cm**-3").value
             xion = data["gas", f"{met_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
-            depletion = data["gas", f"{met_data[el]['name']}_dep"].value
+            depletion = data["gas", f"{el}_dep"]
 
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
@@ -333,8 +333,6 @@ def get_emission_lines(
             xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
             xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"].value
 
-            depletion = data["gas", f"{prim_data[el]['name']}_dep"].value
-
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
 
@@ -350,10 +348,10 @@ def get_emission_lines(
             to_interp_ch[to_interp_ch > 1e9] = 1e9
 
             loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
-            loc_rec_emis *= ne * nel * xion * depletion # erg/s/cm^3
+            loc_rec_emis *= ne * nel * xion # erg/s/cm^3
 
             loc_col_emis = rec_line_dict[line]["emis_grid_col"](to_interp_ch)
-            loc_col_emis *= ne * nel * xion_col * depletion # erg/s/cm^3
+            loc_col_emis *= ne * nel * xion_col # erg/s/cm^3
 
             loc_emis = loc_rec_emis + loc_col_emis
 
