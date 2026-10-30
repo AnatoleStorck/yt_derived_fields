@@ -224,7 +224,7 @@ def get_emission_lines(
 
             nel = data["gas", f"{met_data[el]['name']}_number_density"].to("cm**-3").value
             xion = data["gas", f"{met_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
-            depletion = data["gas", f"{met_data[el]['name']}_dep"].value
+            depletion = data["gas", f"{el}_dep"].value
 
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
@@ -333,8 +333,6 @@ def get_emission_lines(
             xion = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman):02d}"].value
             xion_col = data["gas", f"{prim_data[el]['name']}_{fromRoman(ion_roman) - 1:02d}"].value
 
-            depletion = data["gas", f"{prim_data[el]['name']}_dep"].value
-
             if isinstance(data, FieldDetector):
                 return np.zeros(rho.shape) * u.erg / u.s
 
@@ -350,10 +348,10 @@ def get_emission_lines(
             to_interp_ch[to_interp_ch > 1e9] = 1e9
 
             loc_rec_emis = rec_line_dict[line]["emis_grid"](to_interp)
-            loc_rec_emis *= ne * nel * xion * depletion # erg/s/cm^3
+            loc_rec_emis *= ne * nel * xion # erg/s/cm^3
 
             loc_col_emis = rec_line_dict[line]["emis_grid_col"](to_interp_ch)
-            loc_col_emis *= ne * nel * xion_col * depletion # erg/s/cm^3
+            loc_col_emis *= ne * nel * xion_col # erg/s/cm^3
 
             loc_emis = loc_rec_emis + loc_col_emis
 
